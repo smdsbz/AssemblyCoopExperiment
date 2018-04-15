@@ -6,6 +6,9 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         ; -------- UI --------
         UI_WELCOME      DB 'welcome!', 0DH, 0AH, '$'
         UI_CRLF         DB 0DH, 0AH, '$'
+        INPUT_BUF       DB 100
+        INPUT_COUNT     DB 0
+        INPUT_CONTENT   DB 100 DUP(0)
         ; -------- Global --------
 DATA    ENDS
 
@@ -66,23 +69,17 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         RET
 PRINT_INT32     ENDP
 
-
-; INPUT   PROC FAR STDCALL,
-;         BUFOFFSET:WORD
-;         ; simple input function
-;         ; Args:
-;         ;       BUFOFFSET       - [WORD] target buffer block
-;         ; Return:
-;         ;       (None)
-;         PUSH    EAX
-;         PUSH    EDX
-;         MOV     DX, BUFOFFSET
-;         MOV     AH, 10
-;         INT     21H
-;         POP     EDX
-;         POP     EAX
-;         RET
-; INPUT   ENDP
+INPUT   PROC FAR STDCALL USES EAX EDX BUFOFFSET:WORD
+        ; simple input function
+        ; Args:
+        ;       BUFOFFSET       - [WORD] target buffer block
+        ; Return:
+        ;       (None)
+        MOV     DX, BUFOFFSET
+        MOV     AH, 10
+        INT     21H
+        RET
+INPUT   ENDP
 
 START:
         MOV     AX, DATA
@@ -92,6 +89,15 @@ START:
         INVOKE  PRINT_INT32, -123
         INVOKE  PRINT, OFFSET UI_CRLF
         INVOKE  PRINT_INT32, 1234
+        INVOKE  PRINT, OFFSET UI_CRLF
+
+        ; input test
+        INVOKE  INPUT, OFFSET INPUT_BUF
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOV     AL, INPUT_COUNT
+        AND     EAX, 0FFH
+        MOV     INPUT_CONTENT[EAX], '$'
+        INVOKE  PRINT, OFFSET INPUT_CONTENT
 
         MOV     AH, 4CH
         INT     21H
