@@ -16,6 +16,8 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
         UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
 
+        UI_INPUT_PRO    DB 'Please input product name:', 0AH, 0DH, '$'
+
         INPUT_BUF       DB 100
         INPUT_COUNT     DB 0
         INPUT_CONTENT   DB 100 DUP(0)
@@ -23,6 +25,23 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         ; -------- USER DATA ---------
         USERNAME        DB 'smdshunto$'
         PASSWD          DB 'password$'
+
+        ; -------- Shop DATA ---------
+        N EQU 30
+        S1 DB 'SHOP1',0
+        	GA1 DB 'PEN$',6 DUP(0)
+        		DW 35,56,70,25,?
+        	; PRODUCT_LEN EQU $-GA1
+        	GA2 DB 'BOOK$',5 DUP(0)
+        		DW 12,30,25,5,?
+        	GAN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
+        CRLF DB 0AH,0DH,'$'
+        S2 DB 'SHOP2',0
+        	GB1 DB 'BOOK$',5 DUP(0)
+        		DW 12,28,20,15,?
+        	GB2 DB 'PEN$',6 DUP(0)
+        		DW 35,50,30,24,?
+        	GBN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
         ; -------- Global --------
         AUTH            DB 0
 
@@ -117,6 +136,11 @@ INPUT   PROC FAR STDCALL USES EAX EDX BUFOFFSET:WORD
         RET
 INPUT   ENDP
 
+
+; ------------ MENU_FUNC ------------
+GET_PRO PROC FAR STDCALL USES SI SHOPA:WORD
+
+
 START:
         MOV     AX, DATA
         MOV     DS, AX
@@ -141,10 +165,10 @@ LOGIN:
             ; if 'q' -- quit
         .IF (AL == 1) && (INPUT_CONTENT[0] == 'q')
         JMP EXIT
-        .ENDIF
             ; if input empty -- goto fun3
-        .IF (AL == 0)
-        MOV AUTH, 0
+        .ELSEIF !AL ; == 0
+        ; MOV AUTH, 0
+        JMP MENU
         .ENDIF
         AND EAX, 0FFH
         MOV INPUT_CONTENT[EAX], '$'
@@ -172,6 +196,7 @@ LOGIN:
         INVOKE PRINT, OFFSET UI_LOGIN_ERROR
         JMP LOGIN
         .ENDIF
+        MOV AUTH, 1
         JMP MENU
 
 MENU:
@@ -182,17 +207,18 @@ MENU:
         ; get menu input
         INVOKE INPUT, OFFSET INPUT_BUF
         INVOKE PRINT, OFFSET UI_CRLF
-        ; get input length & add '$' to tail
+        ; get input length
         MOV AL, INPUT_COUNT
         MOV AH, INPUT_CONTENT[0]
+
         .IF AL != 1
         ; input error
         INVOKE PRINT, OFFSET UI_SEPARATOR
         INVOKE PRINT, OFFSET UI_INPUT_ERROR
         INVOKE PRINT, OFFSET UI_SEPARATOR
-        JMP MENU
+        ; JMP MENU
         .ELSEIF AH == '1'
-        ; TODO
+        JMP MENU_1
         .ELSEIF AH == '2'
         ; TODO
         .ELSEIF AH == '3'
@@ -207,6 +233,25 @@ MENU:
         INVOKE PRINT, OFFSET UI_SEPARATOR
         .ENDIF
         JMP MENU
+
+MENU_1:
+; get product info
+        ; print input hint
+        INVOKE PRINT, OFFSET UI_INPUT_PRO
+        ; get product name input
+        INVOKE INPUT, OFFSET INPUT_BUF
+        INVOKE PRINT, OFFSET UI_CRLF
+        ; get input length & add '$' to tail
+        MOV AL, INPUT_COUNT
+        AND EAX, 0FFH
+        MOV INPUT_CONTENT[EAX], '$'
+        .IF AL ; != 0
+
+        .ENDIF
+        JMP MENU
+
+
+
         AND EAX, 0FFH
         ; MOV INPUT_CONTENT[EAX], '$'
 
