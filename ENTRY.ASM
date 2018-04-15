@@ -69,6 +69,26 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         RET
 PRINT_INT32     ENDP
 
+STR_CMP    PROC FAR STDCALL USES BX CX DX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
+        ; cmp str
+        MOV BX, 0
+        MOV CX, 0
+        MOV DX, 0
+        MOV DI, STR1_OFFSET
+        MOV SI, STR2_OFFSET
+        .WHILE (CX != '$') && (DX != '$')
+        MOV CX, [DI + BX]
+        MOV DX, [SI + BX]
+        INC BX
+        .IF CX != DX
+        MOV AX, 0
+        RET
+        .ENDIF
+        .ENDW
+        MOV AX, 1
+        RET
+STR_CMP ENDP
+
 INPUT   PROC FAR STDCALL USES EAX EDX BUFOFFSET:WORD
         ; simple input function
         ; Args:
@@ -99,11 +119,11 @@ START:
         MOV     INPUT_CONTENT[EAX], '$'
         INVOKE  PRINT, OFFSET INPUT_CONTENT
 
+        ; str cmp test
+        INVOKE STR_CMP, OFFSET UI_WELCOME, OFFSET UI_WELCOME
+        INVOKE STR_CMP, OFFSET UI_WELCOME, OFFSET UI_CRLF
         MOV     AH, 4CH
         INT     21H
 
 CODE    ENDS
         END     START
-
-
-
