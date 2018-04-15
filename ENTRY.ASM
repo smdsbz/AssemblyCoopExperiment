@@ -4,11 +4,17 @@ STACK   SEGMENT USE16 STACK
 STACK   ENDS
 DATA    SEGMENT USE16 PUBLIC 'entry'
         ; -------- UI --------
-        UI_WELCOME      DB 'welcome!', 0DH, 0AH, '$'
+        UI_WELCOME      DB 'Welcome!', 0DH, 0AH, '$'
+        UI_USERNAME     DB 'Please input your usermane:', 0DH, 0AH, '$'
+        UI_PASSWD       DB 'Please input your password', 0DH, 0AH, '$'
+        UI_LOGIN_ERROR  DB 0DH, 0AH, 'Username or password incorrect, please input again!', 0DH, 0AH, 0DH, 0AH, '$'
         UI_CRLF         DB 0DH, 0AH, '$'
         INPUT_BUF       DB 100
         INPUT_COUNT     DB 0
         INPUT_CONTENT   DB 100 DUP(0)
+
+        USERNAME        DB 'smdshunto$'
+        PASSWD          DB 'password$'
         ; -------- Global --------
 DATA    ENDS
 
@@ -69,18 +75,18 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         RET
 PRINT_INT32     ENDP
 
-STR_CMP    PROC FAR STDCALL USES BX CX DX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
+STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
         ; cmp str
         MOV BX, 0
-        MOV CX, 0
-        MOV DX, 0
+        MOV CH, 0
+        MOV CL, 0
         MOV DI, STR1_OFFSET
         MOV SI, STR2_OFFSET
-        .WHILE (CX != '$') && (DX != '$')
-        MOV CX, [DI + BX]
-        MOV DX, [SI + BX]
+        .WHILE (CH != '$') && (CL != '$')
+        MOV CH, [DI + BX]
+        MOV CL, [SI + BX]
         INC BX
-        .IF CX != DX
+        .IF CH != CL
         MOV AX, 0
         RET
         .ENDIF
@@ -105,12 +111,53 @@ START:
         MOV     AX, DATA
         MOV     DS, AX
 
-        INVOKE  PRINT, OFFSET UI_WELCOME
-        INVOKE  PRINT_INT32, -123
-        INVOKE  PRINT, OFFSET UI_CRLF
-        INVOKE  PRINT_INT32, 1234
-        INVOKE  PRINT, OFFSET UI_CRLF
+        ; INVOKE  PRINT, OFFSET UI_WELCOME
+        ; INVOKE  PRINT_INT32, -123
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; INVOKE  PRINT_INT32, 1234
+        ; INVOKE  PRINT, OFFSET UI_CRLF
 
+        ; print welcome
+        INVOKE PRINT, OFFSET UI_WELCOME
+
+LOGIN:
+        ; print 'please input username'
+        INVOKE PRINT, OFFSET UI_USERNAME
+        ; get username input
+        INVOKE INPUT, OFFSET INPUT_BUF
+        INVOKE PRINT, OFFSET UI_CRLF
+        ; get input length & add '$' to tail
+        MOV AL, INPUT_COUNT
+        .IF (AL == 1) && (INPUT_CONTENT[0] == 'q')
+        JMP EXIT
+        .ENDIF
+        AND EAX, 0FFH
+        MOV INPUT_CONTENT[EAX], '$'
+        ; cmp username
+        INVOKE STR_CMP, OFFSET USERNAME, OFFSET INPUT_CONTENT
+        .IF !AX  ; if usermane incorrect
+        INVOKE PRINT, OFFSET UI_LOGIN_ERROR
+        JMP LOGIN
+        .ENDIF
+
+        ; print 'please input password'
+        INVOKE PRINT, OFFSET UI_PASSWD
+        ; get password input
+        INVOKE INPUT, OFFSET INPUT_BUF
+        INVOKE PRINT, OFFSET UI_CRLF
+        ; get input length & add '$' to tail
+        MOV AL, INPUT_COUNT
+        AND EAX, 0FFH
+        MOV INPUT_CONTENT[EAX], '$'
+        ; cmp passowrd
+        INVOKE STR_CMP, OFFSET PASSWD, OFFSET INPUT_CONTENT
+        .IF !AX
+        INVOKE PRINT, OFFSET UI_LOGIN_ERROR
+        JMP LOGIN
+        .ENDIF
+        JMP LOGIN
+
+        MOV SI, 0
         ; input test
         INVOKE  INPUT, OFFSET INPUT_BUF
         INVOKE  PRINT, OFFSET UI_CRLF
@@ -122,6 +169,7 @@ START:
         ; str cmp test
         INVOKE STR_CMP, OFFSET UI_WELCOME, OFFSET UI_WELCOME
         INVOKE STR_CMP, OFFSET UI_WELCOME, OFFSET UI_CRLF
+EXIT:
         MOV     AH, 4CH
         INT     21H
 
