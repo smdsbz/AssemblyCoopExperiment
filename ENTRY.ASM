@@ -4,18 +4,28 @@ STACK   SEGMENT USE16 STACK
 STACK   ENDS
 DATA    SEGMENT USE16 PUBLIC 'entry'
         ; -------- UI --------
+        UI_SEPARATOR    DB '--------------------------------------------------------------------', 0DH, 0AH, '$'
         UI_WELCOME      DB 'Welcome!', 0DH, 0AH, '$'
         UI_USERNAME     DB 'Please input your usermane:', 0DH, 0AH, '$'
         UI_PASSWD       DB 'Please input your password', 0DH, 0AH, '$'
-        UI_LOGIN_ERROR  DB 0DH, 0AH, 'Username or password incorrect, please input again!', 0DH, 0AH, 0DH, 0AH, '$'
+        UI_LOGIN_ERROR  DB 'Username or password incorrect, please input again!', 0DH, 0AH, '$'
         UI_CRLF         DB 0DH, 0AH, '$'
+            ; --------- MENU ---------
+        UI_MENU         DB '1. Get product info      2. Edit product info       3. Sum average profit rate', 0DH, 0AH,
+                           '4. Sum profit rate rank  5. Print all product info  6. Exit', 0DH, 0AH, '$'
+        UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
+        UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
+
         INPUT_BUF       DB 100
         INPUT_COUNT     DB 0
         INPUT_CONTENT   DB 100 DUP(0)
 
+        ; -------- USER DATA ---------
         USERNAME        DB 'smdshunto$'
         PASSWD          DB 'password$'
         ; -------- Global --------
+        AUTH            DB 0
+
 DATA    ENDS
 
 CODE    SEGMENT USE16
@@ -128,15 +138,22 @@ LOGIN:
         INVOKE PRINT, OFFSET UI_CRLF
         ; get input length & add '$' to tail
         MOV AL, INPUT_COUNT
+            ; if 'q' -- quit
         .IF (AL == 1) && (INPUT_CONTENT[0] == 'q')
         JMP EXIT
+        .ENDIF
+            ; if input empty -- goto fun3
+        .IF (AL == 0)
+        MOV AUTH, 0
         .ENDIF
         AND EAX, 0FFH
         MOV INPUT_CONTENT[EAX], '$'
         ; cmp username
         INVOKE STR_CMP, OFFSET USERNAME, OFFSET INPUT_CONTENT
         .IF !AX  ; if usermane incorrect
+        INVOKE PRINT, OFFSET UI_SEPARATOR
         INVOKE PRINT, OFFSET UI_LOGIN_ERROR
+        INVOKE PRINT, OFFSET UI_SEPARATOR
         JMP LOGIN
         .ENDIF
 
@@ -155,7 +172,43 @@ LOGIN:
         INVOKE PRINT, OFFSET UI_LOGIN_ERROR
         JMP LOGIN
         .ENDIF
-        JMP LOGIN
+        JMP MENU
+
+MENU:
+        ; print menu
+        INVOKE PRINT, OFFSET UI_MENU
+        ; print input hint
+        INVOKE PRINT, OFFSET UI_MENU_INPUT
+        ; get menu input
+        INVOKE INPUT, OFFSET INPUT_BUF
+        INVOKE PRINT, OFFSET UI_CRLF
+        ; get input length & add '$' to tail
+        MOV AL, INPUT_COUNT
+        MOV AH, INPUT_CONTENT[0]
+        .IF AL != 1
+        ; input error
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        JMP MENU
+        .ELSEIF AH == '1'
+        ; TODO
+        .ELSEIF AH == '2'
+        ; TODO
+        .ELSEIF AH == '3'
+        .ELSEIF AH == '4'
+        .ELSEIF AH == '5'
+        .ELSEIF AH == '6'
+        JMP EXIT
+        .ELSE
+        ; input error
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        .ENDIF
+        JMP MENU
+        AND EAX, 0FFH
+        ; MOV INPUT_CONTENT[EAX], '$'
 
         MOV SI, 0
         ; input test
