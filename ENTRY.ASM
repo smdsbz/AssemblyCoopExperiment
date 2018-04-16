@@ -261,42 +261,90 @@ EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD, COUNT:WORD, CONTENT:WO
         MOV SI, PRO
         ADD SI, 10
         MOV EAX, 0
+EDIT1:
         ; 进货价
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, '>'
         INVOKE INPUT, BUF
         INVOKE PRINT, CRLF
-        ; length = buf + 100
-        ; MOV DI, COUNT
+
+        ; cmp input length
         MOV BX, COUNT
         MOV AH, BYTE PTR [BX]
         .IF !AH ; == 0
-        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        ; input empty
+        JMP EDIT2
         .ENDIF
+
+        ; str2int
+        INVOKE STR2INT32, CONTENT
+
+        .IF EAX == -1
+        ; input wrong
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        JMP EDIT1
+        .ELSE
+        MOV [SI], AX
+        .ENDIF
+
+
+
         ; content = buf + 101
+EDIT2:
         ; 销售价
         ADD SI, 2
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, '>'
         INVOKE INPUT, BUF
         INVOKE PRINT, CRLF
-        ; length = buf + 100
-        ; MOV DI, COUNT
+
+        ; cmp input length
         MOV BX, COUNT
         MOV AH, BYTE PTR [BX]
+        .IF !AH ; == 0
+        ; input empty
+        JMP EDIT2
+        .ENDIF
+
+        ; str2int
+        INVOKE STR2INT32, CONTENT
+
+        .IF EAX == -1
+        ; input wrong
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        JMP EDIT1
+        .ELSE
+        MOV [SI], AX
+        .ENDIF
+
         ; 进货数
         ADD SI, 2
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, '>'
         INVOKE INPUT, BUF
         INVOKE PRINT, CRLF
-        ; length = buf + 100
-        ; MOV DI, COUNT
+
+        ; cmp input length
         MOV BX, COUNT
         MOV AH, BYTE PTR [BX]
+        .IF !AH ; == 0
+        ; input empty
+        JMP EDIT2
+        .ENDIF
+
+        ; str2int
+        INVOKE STR2INT32, CONTENT
+
+        .IF EAX == -1
+        ; input wrong
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        JMP EDIT1
+        .ELSE
+        MOV [SI], AX
+        .ENDIF
         ; INVOKE PRINT, CRLF
         RET
 EDIT_PRO ENDP
