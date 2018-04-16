@@ -33,7 +33,7 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         PASSWD          DB 'password$'
 
         ; -------- Shop DATA ---------
-        N EQU 30
+        N EQU 4
         S1 DB 'SHOP1',0
         GA1 DB 'PEN$',6 DUP(0)
         	DW 35,56,70,25,?
@@ -268,6 +268,104 @@ PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD, PRINT_
         INVOKE PRINT, CRLF
         RET
 PRINT_PRO ENDP
+
+RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHOP2OFF:WORD, SNAMESIZE:WORD, NSIZE:WORD, SSIZE:WORD
+        ; zero pr field in SHOP2
+        ; get first item in SHOP1
+        MOVZX   EBX, SHOP2OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     EBX, EAX
+        ; zero pr field in SHOP2
+        ; -- get border ==> (EDX)
+        MOVZX   EDX, SHOP2OFF
+        MOVZX   EAX, SHOP1OFF
+        SUB     EDX, EAX
+        MOVZX   EAX, SHOP2OFF
+        ADD     EDX, EAX
+        ; set default ranking of all to 1
+        .REPEAT
+        MOV     WORD PTR [EBX][18], 1
+        MOVZX   EAX, SSIZE
+        ADD     EBX, EAX
+        .UNTIL  (EBX >= EDX)
+
+        ; re-get first item in SHOP1 ==> (EBX)
+        MOVZX   EBX, SHOP1OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     EBX, EAX
+        ; re-get border for SHOP1 ==> (EDX)
+        MOVZX   EDX, SHOP2OFF
+        ; MOVZX   EAX, SHOP1OFF
+        ; SUB     EDX, EAX
+        ; MOVZX   EAX, SHOP1OFF
+        ; ADD     EDX, EAX
+        .REPEAT
+        ; ECX point to first item in SHOP1
+        MOVZX   ECX, SHOP1OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     ECX, EAX
+                ; stack ranking up
+                .REPEAT
+                MOV     AX, [EBX][18]
+                .IF     (WORD PTR [ECX][18] > AX)
+                ; goto SHOP2
+                MOVZX   EAX, SHOP1OFF
+                SUB     ECX, EAX
+                MOVZX   EAX, SHOP2OFF
+                ADD     ECX, EAX
+                ; inc its ranking
+                MOV     AX, [ECX][18]
+                INC     AX
+                MOV     [ECX][18], AX
+                ; go back to SHOP1
+                MOVZX   EAX, SHOP2OFF
+                SUB     ECX, EAX
+                MOVZX   EAX, SHOP1OFF
+                ADD     ECX, EAX
+                .ENDIF
+                ; goto next item
+                MOVZX   EAX, SSIZE
+                ADD     ECX, EAX
+                .UNTIL  (ECX >= EDX)
+        ; goto next item
+        MOVZX   EAX, SSIZE
+        ADD     EBX, EAX
+        .UNTIL  (EBX >= EDX)
+
+        ; ; move ranks in SHOP2 to SHOP1
+        ; ; get first item in SHOP1
+        ; MOVZX   EBX, SHOP1OFF
+        ; MOVZX   EAX, SNAMESIZE
+        ; ADD     EBX, EAX
+        ; ; -- get border ==> (EDX)
+        ; MOVZX   EDX, SHOP2OFF
+        ; ; MOVZX   EAX, SHOP1OFF
+        ; ; SUB     EDX, EAX
+        ; ; MOVZX   EAX, SHOP2OFF
+        ; ; ADD     EDX, EAX
+        ; .REPEAT
+        ; ; goto SHOP2
+        ; MOVZX   EAX, SHOP1OFF
+        ; SUB     EBX, EAX
+        ; MOVZX   EAX, SHOP2OFF
+        ; ADD     EBX, EAX
+        ; ; get ranking
+        ; MOV     CX, [EBX][18]
+        ; ; go back to SHOP1
+        ; MOVZX   EAX, SHOP2OFF
+        ; SUB     EBX, EAX
+        ; MOVZX   EAX, SHOP1OFF
+        ; ADD     EBX, EAX
+        ; ; assignment
+        ; MOV     [EBX][18], CX
+        ; ; goto next item
+        ; MOVZX   EAX, SSIZE
+        ; ADD     EBX, EAX
+        ; .UNTIL  (EBX >= EDX)
+
+        RET
+RANK_ITEM       ENDP
+
 
 EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD, COUNT:WORD, CONTENT:WORD, CRLF:WORD
         MOV SI, PRO
@@ -518,6 +616,7 @@ MENU:
         .ELSEIF AH == '3'
         JMP MENU_3
         .ELSEIF AH == '4'
+        JMP MENU_4
         .ELSEIF AH == '5'
         JMP MENU_5
         .ELSEIF AH == '6'
@@ -618,6 +717,10 @@ MENU_2:
 MENU_3:
 ; sum profit rate
         INVOKE CALC_PROFIT, OFFSET GA1, OFFSET GB1, 10, 20
+        JMP MENU
+
+MENU_4:
+        INVOKE RANK_ITEM, OFFSET S1, OFFSET S2, 6, 10, 20
         JMP MENU
 
 MENU_5:
