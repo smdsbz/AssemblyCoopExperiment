@@ -78,6 +78,12 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         ;       (None)
         MOV     EBX, 0
         MOV     EAX, NUM
+        .IF     (EAX == 0)              ; zero checking
+        MOV     DL, '0'
+        MOV     AH, 2
+        INT     21H
+        RET
+        .ENDIF
         ; negative sign?
         ; AND     EAX, 80000000H
         .IF     (EAX & 80000000H)
@@ -135,7 +141,38 @@ STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
         RET
 STR_CMP ENDP
 
-INPUT   PROC FAR STDCALL USES EAX EDX BUFOFFSET:WORD
+STR2INT32       PROC FAR STDCALL USES EBX ECX EDX EDI STROFFSET:WORD
+        MOV     EAX, 0
+        MOVZX   EBX, STROFFSET
+        MOV     ECX, 10                         ; NOTE: default base is 10
+        MOV     EDX, 30H
+        .IF     (BYTE PTR [EBX] == '-')         ; skip negative sign
+        INC     EBX
+        .ELSEIF (BYTE PTR [EBX] == '$')
+        MOV     EAX, -1
+        RET
+        .ELSEIF (BYTE PTR [EBX] < '0' || BYTE PTR [EBX] > '9')
+        MOV     EAX, -1
+        RET
+        .ENDIF
+        ; convert to Int32
+        .REPEAT
+        MUL     ECX
+        MOVZX   EDX, BYTE PTR [EBX]
+        SUB     EDX, 30H
+        ADD     EAX, EDX
+        INC     EBX
+        .UNTIL  (BYTE PTR [EBX] == '$')
+        ; signed?
+        MOVZX   EBX, STROFFSET
+        .IF     (BYTE PTR [EBX] == '-')
+        NEG     EAX
+        .ENDIF
+        RET
+STR2INT32       ENDP
+
+
+INPUT   PROC FAR STDCALL USES EAX EDX EDI BUFOFFSET:WORD
         ; simple input function
         ; Args:
         ;       BUFOFFSET       - [WORD] target buffer block
@@ -144,6 +181,12 @@ INPUT   PROC FAR STDCALL USES EAX EDX BUFOFFSET:WORD
         MOV     DX, BUFOFFSET
         MOV     AH, 10
         INT     21H
+        MOVZX   EDX, BUFOFFSET
+        INC     EDX
+        MOV     AL, BYTE PTR [EDX]
+        AND     EAX, 0FFH
+        INC     EDX
+        MOV     BYTE PTR [EDX][EAX], '$'
         RET
 INPUT   ENDP
 
@@ -190,25 +233,24 @@ PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD, PRINT_
         INVOKE PRINT_SEP, ','
         MOV SI, PRO
         ADD SI, 10
-        MOV EAX, 0
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, ','
         ADD SI, 2
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, ','
         ADD SI, 2
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, ','
         ADD SI, 2
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         .IF PRINT_PROFIT
         INVOKE PRINT_SEP, ','
         ADD SI, 2
-        MOV AX, [SI]
+        MOVSX EAX, WORD PTR [SI]
         INVOKE PRINT_INT32, EAX
         .ENDIF
         INVOKE PRINT, CRLF
@@ -268,15 +310,20 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         MOV     ECX, EBX
         IMUL    ECX, SSIZE
         ; LEA     ECX, GAOFF[10]
-        MOV     CX, GAOFF
+        ADD     CX, GAOFF
         ADD     CX, NSIZE
         MOVZX   EAX, WORD PTR [ECX][1*2]
         IMUL    EAX, 100
         IMUL    WORD PTR [ECX][3*2]
         MOVZX   EBX, WORD PTR [ECX][0*2]
         IMUL    EBX, WORD PTR [ECX][2*2]
-        CMP     EBX, 0
-        JE      ZDIV1
+        .IF     (EBX == 0)                      ; zero div checking
+        MOV     WORD PTR [ECX][4*2], 0
+        INC     EBX
+        .CONTINUE
+        .ENDIF
+        ; CMP     EBX, 0
+        ; JE      ZDIV1
         DIV     BX
         SUB     AX, 100
         MOV     WORD PTR [ECX][4*2], AX
@@ -287,8 +334,13 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         IMUL    WORD PTR [ECX][3*2]
         MOVZX   EBX, WORD PTR [ECX][0*2]
         IMUL    EBX, WORD PTR [ECX][2*2]
-        CMP     EBX, 0
-        JE      ZDIV1
+        .IF     (EBX == 0)                      ; zero div checking
+        MOV     WORD PTR [ECX][4*2], 0
+        INC     EBX
+        .CONTINUE
+        .ENDIF
+        ; CMP     EBX, 0
+        ; JE      ZDIV1
         DIV     BX
         SUB     AX, 100
         MOV     WORD PTR [ECX][4*2], AX
@@ -304,18 +356,18 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         ; .ENDW
         .UNTIL  (EBX == N)
         RET
-ZDIV1:  ; zero-divison encountered calc-ing p-r, set both p-rs and avg p-r to 0!
-        MOV     AX, 0
-        MOV     WORD PTR [ECX][4*2], AX
-ZDIV2:  MOV     AX, 0
-        MOV     WORD PTR [ECX][4*2], AX
-        JMP     E_BOSSJ
-E_BOSSJ:; ending of BOSSJ
-        JMP     EXJOB
-EXJOB:  ; reset AUTH, get back to START
-        MOV     AL, 0                   ; reset AUTH to 0
-        MOV     AUTH, AL
-        RET
+; ZDIV1:  ; zero-divison encountered calc-ing p-r, set both p-rs and avg p-r to 0!
+;         MOV     AX, 0
+;         MOV     WORD PTR [ECX][4*2], AX
+; ZDIV2:  MOV     AX, 0
+;         MOV     WORD PTR [ECX][4*2], AX
+;         JMP     E_BOSSJ
+; E_BOSSJ:; ending of BOSSJ
+;         JMP     EXJOB
+; EXJOB:  ; reset AUTH, get back to START
+;         MOV     AL, 0                   ; reset AUTH to 0
+;         MOV     AUTH, AL
+;         RET
 CALC_PROFIT     ENDP
 
 
@@ -349,7 +401,6 @@ LOGIN:
         JMP MENU
         .ENDIF
         AND EAX, 0FFH
-        MOV INPUT_CONTENT[EAX], '$'
         ; cmp username
         INVOKE STR_CMP, OFFSET USERNAME, OFFSET INPUT_CONTENT
         .IF !AX  ; if usermane incorrect
@@ -367,7 +418,6 @@ LOGIN:
         ; get input length & add '$' to tail
         MOV AL, INPUT_COUNT
         AND EAX, 0FFH
-        MOV INPUT_CONTENT[EAX], '$'
         ; cmp passowrd
         INVOKE STR_CMP, OFFSET PASSWD, OFFSET INPUT_CONTENT
         .IF !AX
@@ -426,7 +476,6 @@ MENU_1:
         ; get input length & add '$' to tail
         MOV AL, INPUT_COUNT
         AND EAX, 0FFH
-        MOV INPUT_CONTENT[EAX], '$'
         .IF AL ; != 0
         INVOKE GET_PRO, OFFSET S1, OFFSET S2, OFFSET INPUT_CONTENT
         .IF !DI ; == 0
@@ -453,7 +502,6 @@ MENU_2:
         ; get input length & add '$' to tail
         MOV AL, INPUT_COUNT
         AND EAX, 0FFH
-        MOV INPUT_CONTENT[EAX], '$'
         .IF AL ; != 0
         INVOKE GET_PRO, OFFSET S1, OFFSET S2, OFFSET INPUT_CONTENT
         .IF !DI ; == 0
@@ -506,7 +554,6 @@ MENU_5:
         INVOKE  PRINT, OFFSET UI_CRLF
         MOV     AL, INPUT_COUNT
         AND     EAX, 0FFH
-        MOV     INPUT_CONTENT[EAX], '$'
         INVOKE  PRINT, OFFSET INPUT_CONTENT
 
         ; str cmp test
