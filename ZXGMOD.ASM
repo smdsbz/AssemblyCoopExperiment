@@ -156,6 +156,42 @@ INPUT   ENDP
 
 
 
+GET_PRO PROC FAR STDCALL USES AX BX SHOPA:WORD, SHOPB:WORD, PRO:WORD
+        ; Return:
+        ;       DI      - item addr. in SHOP1
+        ;       SI      - item addr. in SHOP2
+        MOV BX, 0
+        MOV DI, SHOPA
+        MOV SI, SHOPB
+        ADD DI, 6
+        ADD SI, 6
+        ; SHOPA
+        .WHILE BX < 60
+        INVOKE STR_CMP, DI, PRO
+        .IF AX
+        JMP SHOPB_
+        .ENDIF
+        ADD BX, 20
+        ADD DI, BX
+        .ENDW
+        MOV DI, 0
+        SHOPB_:
+        ; SHOPB
+        MOV BX, 0
+        .WHILE BX < 600
+        INVOKE STR_CMP, SI, PRO
+        .IF AX
+        RET
+        .ENDIF
+        ADD BX, 20
+        ADD SI, BX
+        .ENDW
+        MOV SI, 0
+        RET
+GET_PRO ENDP
+
+
+
 CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NSIZE:WORD, SSIZE:WORD
         MOV     EBX, 0
         ; .WHILE  (EBX != N)
@@ -181,8 +217,12 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         DIV     BX
         SUB     AX, 100
         MOV     WORD PTR [ECX][4*2], AX
-        SUB     CX, GAOFF
-        ADD     CX, GBOFF
+        ; move to SHOP2
+        MOV     AX, GAOFF
+        SUB     AX, 10
+        MOV     BX, GBOFF
+        SUB     BX, 10
+        INVOKE  GET_PRO, AX, BX, CX
         MOVZX   EAX, WORD PTR [ECX][1*2]
         IMUL    EAX, 100
         IMUL    WORD PTR [ECX][3*2]
@@ -210,18 +250,6 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         ; .ENDW
         .UNTIL  (EBX == N)
         RET
-; ZDIV1:  ; zero-divison encountered calc-ing p-r, set both p-rs and avg p-r to 0!
-;         MOV     AX, 0
-;         MOV     WORD PTR [ECX][4*2], AX
-; ZDIV2:  MOV     AX, 0
-;         MOV     WORD PTR [ECX][4*2], AX
-;         JMP     E_BOSSJ
-; E_BOSSJ:; ending of BOSSJ
-;         JMP     EXJOB
-; EXJOB:  ; reset AUTH, get back to START
-;         MOV     AL, 0                   ; reset AUTH to 0
-;         MOV     AUTH, AL
-;         RET
 CALC_PROFIT     ENDP
 
 
@@ -258,6 +286,12 @@ STR2INT32       ENDP
 
 
 
+RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NSIZE:WORD, SSIZE:WORD
+
+RANK_ITE        ENDP
+
+
+
 
 START:
         MOV     AX, DATA
@@ -270,26 +304,26 @@ START:
         ; INVOKE  PRINT, OFFSET UI_CRLF
 
         ; ; CALC_PROFIT test
-        ; INVOKE  CALC_PROFIT, ADDR GA1, ADDR GB1, 10, 20
-        ; MOVSX   EAX, WORD PTR GA1[18]
-        ; INVOKE  PRINT_INT32, EAX
-        ; INVOKE  PRINT, OFFSET UI_CRLF
-        ; MOVSX   EAX, WORD PTR GA1[38]
-        ; INVOKE  PRINT_INT32, EAX
-        ; INVOKE  PRINT, OFFSET UI_CRLF
-        ; MOVSX   EAX, WORD PTR GA1[58]
-        ; INVOKE  PRINT_INT32, EAX
-        ; INVOKE  PRINT, OFFSET UI_CRLF
-        ; MOVSX   EAX, WORD PTR GA1[78]
-        ; INVOKE  PRINT_INT32, EAX
-        ; INVOKE  PRINT, OFFSET UI_CRLF
+        INVOKE  CALC_PROFIT, ADDR GA1, ADDR GB1, 10, 20
+        MOVSX   EAX, WORD PTR GA1[18]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOVSX   EAX, WORD PTR GA1[38]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOVSX   EAX, WORD PTR GA1[58]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOVSX   EAX, WORD PTR GA1[78]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
 
         ; STR2INT32 test
-        INVOKE  INPUT, ADDR INPUT_BUF
-        INVOKE  PRINT, ADDR UI_CRLF
-        INVOKE  STR2INT32, ADDR INPUT_CONTENT
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, ADDR UI_CRLF
+        ; INVOKE  INPUT, ADDR INPUT_BUF
+        ; INVOKE  PRINT, ADDR UI_CRLF
+        ; INVOKE  STR2INT32, ADDR INPUT_CONTENT
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, ADDR UI_CRLF
 
 
         MOV     AH, 4CH
