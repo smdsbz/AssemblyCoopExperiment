@@ -348,6 +348,39 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         ADD     EBX, EAX
         .UNTIL  (EBX >= EDX)
 
+        ; zero pr field in SHOP2
+        ; get first item in SHOP1
+        MOVZX   EBX, SHOP1OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     EBX, EAX
+        ; zero pr field in SHOP2
+        ; -- get border ==> (EDX)
+        MOVZX   EDX, SHOP2OFF
+        MOVZX   EAX, SHOP1OFF
+        SUB     EDX, EAX
+        MOVZX   EAX, SHOP2OFF
+        ADD     EDX, EAX
+        ; set default ranking of all to 1
+        .REPEAT
+        ; goto SHOP2
+        MOVZX   EAX, SHOP1OFF
+        SUB     EBX, EAX
+        MOVZX   EAX, SHOP2OFF
+        ADD     EBX, EAX
+        ; get ranking
+        SUB     EBX, EAX
+        ; go back to SHOP1
+        MOVZX   EAX, SHOP2OFF
+        SUB     EBX, EAX
+        MOVZX   EAX, SHOP1OFF
+        ADD     EBX, EAX
+        ; assignment
+        MOV     [EBX][18], CX
+        ; goto next item
+        MOVZX   EAX, SSIZE
+        ADD     EBX, EAX
+        .UNTIL  (EBX >= EDX)
+
         RET
 RANK_ITEM       ENDP
 
