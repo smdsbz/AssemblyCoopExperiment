@@ -4,7 +4,7 @@ STACK   SEGMENT USE16 STACK
 STACK   ENDS
 DATA    SEGMENT USE16 PUBLIC 'entry'
         ; -------- UI --------
-        UI_SEPARATOR    DB '--------------------------------------------------------------------', 0DH, 0AH, '$'
+        UI_SEPARATOR    DB '-------------------------------------------------------------------------------', 0DH, 0AH, '$'
         UI_WELCOME      DB 'Welcome!', 0DH, 0AH, '$'
         UI_USERNAME     DB 'Please input your usermane:', 0DH, 0AH, '$'
         UI_PASSWD       DB 'Please input your password', 0DH, 0AH, '$'
@@ -17,16 +17,16 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
         UI_MENU_INPUT2  DB 'Please input your selection[1-2]:', 0DH, 0AH, '$'
         UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
-
         UI_INPUT_PRO    DB 'Please input product name:', 0AH, 0DH, '$'
-
         UI_PRO_NOTFOUND DB 'Product not found!', 0AH, 0DH, '$'
 
+        UI_SHOP1        DB 'SHOP1$'
+        UI_SHOP2        DB 'SHOP2$'
+
+        ; ---------- INPUT BUF -----------
         INPUT_BUF       DB 100
         INPUT_COUNT     DB 0
         INPUT_CONTENT   DB 100 DUP(0)
-        UI_SHOP1        DB 'SHOP1$'
-        UI_SHOP2        DB 'SHOP2$'
 
         ; -------- USER DATA ---------
         USERNAME        DB 'smdshunto$'
@@ -37,7 +37,6 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         S1 DB 'SHOP1',0
         GA1 DB 'PEN$',6 DUP(0)
         	DW 35,56,70,25,?
-        ; PRODUCT_LEN EQU $-GA1
         GA2 DB 'BOOK$',5 DUP(0)
         	DW 12,30,25,5,?
         GAN DB N-2 DUP('TEMPVALUE$',15,0,20,0,30,0,2,0,?,?)
@@ -48,7 +47,7 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         	DW 35,50,30,24,?
         GBN DB N-2 DUP('TEMPVALUE$',15,0,20,0,30,0,2,0,?,?)
         ; -------- Global --------
-        AUTH            DB 0
+        AUTH DB 0
 
 DATA    ENDS
 
@@ -116,14 +115,22 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
 PRINT_INT32     ENDP
 
 PRINT_SEP PROC FAR STDCALL USES AX DX SEP:BYTE
-MOV     DL, SEP
-MOV     AH, 2
-INT     21H
-RET
+        ; print separator
+        ; Args:
+        ;    SEP: separator char
+        ; Return: None
+        MOV     DL, SEP
+        MOV     AH, 2
+        INT     21H
+        RET
 PRINT_SEP ENDP
 
 STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
-        ; cmp str
+        ; compare str
+        ; Args:
+        ;    STR1_OFFSET: str1 address
+        ;    STR2_OFFSET: str2 address
+        ; Return: MOV AX,1 if same else MOV AX,0
         MOV BX, 0
         MOV CH, 0
         MOV CL, 0
@@ -143,6 +150,10 @@ STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
 STR_CMP ENDP
 
 STR2INT32       PROC FAR STDCALL USES EBX ECX EDX EDI STROFFSET:WORD
+        ; str2int32
+        ; Args:
+        ;    SEP: separator char
+        ; Return: None
         MOV     EAX, 0
         MOVZX   EBX, STROFFSET
         MOV     ECX, 10                         ; NOTE: default base is 10
@@ -284,15 +295,11 @@ EDIT1:
         .IF EAX == -1
         ; input wrong
         INVOKE PRINT, OFFSET UI_INPUT_ERROR
-        ADD SI, -2
         JMP EDIT1
         .ELSE
         MOV [SI], AX
         .ENDIF
 
-
-
-        ; content = buf + 101
 EDIT2:
         ; 销售价
         ADD SI, 2
