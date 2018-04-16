@@ -13,6 +13,7 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
             ; --------- MENU ---------
         UI_MENU         DB '1. Get product info      2. Edit product info       3. Sum average profit rate', 0DH, 0AH,
                            '4. Sum profit rate rank  5. Print all product info  6. Exit', 0DH, 0AH, '$'
+        UI_MENU_UNLOGIN DB '1. Get product info      2. Exit', 0DH, 0AH, '$'
         UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
         UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
 
@@ -31,7 +32,7 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         PASSWD          DB 'password$'
 
         ; -------- Shop DATA ---------
-        N EQU 3
+        N EQU 30
         S1 DB 'SHOP1',0
         GA1 DB 'PEN$',6 DUP(0)
         	DW 35,56,70,25,?
@@ -214,7 +215,7 @@ PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD, PRINT_
         RET
 PRINT_PRO ENDP
 
-EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD
+EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD, COUNT:WORD, CONTENT:WORD, CRLF:WORD
         MOV SI, PRO
         ADD SI, 10
         MOV EAX, 0
@@ -223,18 +224,37 @@ EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, '>'
         INVOKE INPUT, BUF
+        INVOKE PRINT, CRLF
         ; length = buf + 100
+        ; MOV DI, COUNT
+        MOV BX, COUNT
+        MOV AH, BYTE PTR [BX]
+        .IF !AH ; == 0
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        .ENDIF
         ; content = buf + 101
         ; 销售价
         ADD SI, 2
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, '>'
+        INVOKE INPUT, BUF
+        INVOKE PRINT, CRLF
+        ; length = buf + 100
+        ; MOV DI, COUNT
+        MOV BX, COUNT
+        MOV AH, BYTE PTR [BX]
         ; 进货数
         ADD SI, 2
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT_SEP, '>'
+        INVOKE INPUT, BUF
+        INVOKE PRINT, CRLF
+        ; length = buf + 100
+        ; MOV DI, COUNT
+        MOV BX, COUNT
+        MOV AH, BYTE PTR [BX]
         ; INVOKE PRINT, CRLF
         RET
 EDIT_PRO ENDP
@@ -278,6 +298,7 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         ADD     AX, WORD PTR [ECX][4*2]
         SAR     AX, 1
         ; finished calculation
+        MOV     WORD PTR [ECX][4*2], AX
         POP     EBX                             ; restore loop count
         INC     EBX
         ; .ENDW
@@ -296,6 +317,7 @@ EXJOB:  ; reset AUTH, get back to START
         MOV     AUTH, AL
         RET
 CALC_PROFIT     ENDP
+
 
 START:
         MOV     AX, DATA
@@ -380,6 +402,7 @@ MENU:
         .ELSEIF AH == '2'
         JMP MENU_2
         .ELSEIF AH == '3'
+        JMP MENU_3
         .ELSEIF AH == '4'
         .ELSEIF AH == '5'
         JMP MENU_5
@@ -439,7 +462,7 @@ MENU_2:
         INVOKE PRINT, OFFSET UI_SEPARATOR
         .ELSE
         INVOKE PRINT, OFFSET UI_SEPARATOR
-        INVOKE EDIT_PRO, DI, OFFSET INPUT_BUF
+        INVOKE EDIT_PRO, DI, OFFSET INPUT_BUF, OFFSET INPUT_COUNT, OFFSET INPUT_CONTENT, OFFSET UI_CRLF
         ; INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
         ; .IF SI
         ; INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF
@@ -450,7 +473,7 @@ MENU_2:
 
 MENU_3:
 ; sum profit rate
-        INVOKE CALC_PROFIT, OFFSET GA1, OFFSET GB1, 3, 20
+        INVOKE CALC_PROFIT, OFFSET GA1, OFFSET GB1, 10, 20
         JMP MENU
 
 MENU_5:
