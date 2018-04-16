@@ -306,21 +306,22 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         ADD     EBX, EAX
         .UNTIL  (EBX >= EDX)
 
-        ; re-get first item in SHOP1
+        ; re-get first item in SHOP1 ==> (EBX)
         MOVZX   EBX, SHOP1OFF
         MOVZX   EAX, SNAMESIZE
         ADD     EBX, EAX
-        ; re-get border ==> (EDX)
+        ; re-get border for SHOP1 ==> (EDX)
         MOVZX   EDX, SHOP2OFF
-        MOVZX   EAX, SHOP1OFF
-        SUB     EDX, EAX
-        MOVZX   EAX, SHOP2OFF
-        ADD     EDX, EAX
+        ; MOVZX   EAX, SHOP1OFF
+        ; SUB     EDX, EAX
+        ; MOVZX   EAX, SHOP1OFF
+        ; ADD     EDX, EAX
         .REPEAT
         ; ECX point to first item in SHOP1
         MOVZX   ECX, SHOP1OFF
         MOVZX   EAX, SNAMESIZE
         ADD     ECX, EAX
+                ; stack ranking up
                 .REPEAT
                 MOV     AX, [EBX][18]
                 .IF     (WORD PTR [ECX][18] > AX)
@@ -339,7 +340,7 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
                 MOVZX   EAX, SHOP1OFF
                 ADD     ECX, EAX
                 .ENDIF
-                ; togo next item
+                ; goto next item
                 MOVZX   EAX, SSIZE
                 ADD     ECX, EAX
                 .UNTIL  (ECX >= EDX)
@@ -348,19 +349,17 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         ADD     EBX, EAX
         .UNTIL  (EBX >= EDX)
 
-        ; zero pr field in SHOP2
+        ; move ranks in SHOP2 to SHOP1
         ; get first item in SHOP1
         MOVZX   EBX, SHOP1OFF
         MOVZX   EAX, SNAMESIZE
         ADD     EBX, EAX
-        ; zero pr field in SHOP2
         ; -- get border ==> (EDX)
         MOVZX   EDX, SHOP2OFF
-        MOVZX   EAX, SHOP1OFF
-        SUB     EDX, EAX
-        MOVZX   EAX, SHOP2OFF
-        ADD     EDX, EAX
-        ; set default ranking of all to 1
+        ; MOVZX   EAX, SHOP1OFF
+        ; SUB     EDX, EAX
+        ; MOVZX   EAX, SHOP2OFF
+        ; ADD     EDX, EAX
         .REPEAT
         ; goto SHOP2
         MOVZX   EAX, SHOP1OFF
@@ -368,7 +367,7 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         MOVZX   EAX, SHOP2OFF
         ADD     EBX, EAX
         ; get ranking
-        SUB     EBX, EAX
+        MOV     CX, [EBX][18]
         ; go back to SHOP1
         MOVZX   EAX, SHOP2OFF
         SUB     EBX, EAX
@@ -421,6 +420,18 @@ START:
 
         ; RANK_ITEM test
         INVOKE  RANK_ITEM, ADDR S1, ADDR S2, 6, 10, 20
+        MOVSX   EAX, WORD PTR GA1[18]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOVSX   EAX, WORD PTR GA1[38]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOVSX   EAX, WORD PTR GA1[58]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
+        MOVSX   EAX, WORD PTR GA1[78]
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, OFFSET UI_CRLF
 
 
         MOV     AH, 4CH
