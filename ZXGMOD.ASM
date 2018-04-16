@@ -76,6 +76,12 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         ;       (None)
         MOV     EBX, 0
         MOV     EAX, NUM
+        .IF     (EAX == 0)              ; zero checking
+        MOV     DL, '0'
+        MOV     AH, 2
+        INT     21H
+        RET
+        .ENDIF
         ; negative sign?
         ; AND     EAX, 80000000H
         .IF     (EAX & 80000000H)
@@ -228,7 +234,10 @@ STR2INT32       PROC FAR STDCALL USES EBX ECX EDX EDI STROFFSET:WORD
         .IF     (BYTE PTR [EBX] == '-')         ; skip negative sign
         INC     EBX
         .ELSEIF (BYTE PTR [EBX] == '$')
-        MOV     EAX, 0
+        MOV     EAX, -1
+        RET
+        .ELSEIF (BYTE PTR [EBX] < '0' || BYTE PTR [EBX] > '9')
+        MOV     EAX, -1
         RET
         .ENDIF
         ; convert to Int32
@@ -260,25 +269,27 @@ START:
         ; INVOKE  PRINT_INT32, 1234
         ; INVOKE  PRINT, OFFSET UI_CRLF
 
-        INVOKE  CALC_PROFIT, ADDR GA1, ADDR GB1, 10, 20
-        MOVSX   EAX, WORD PTR GA1[18]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[38]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[58]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[78]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-
-        ; INVOKE  INPUT, ADDR INPUT_BUF
-        ; INVOKE  PRINT, ADDR UI_CRLF
-        ; INVOKE  STR2INT32, ADDR INPUT_CONTENT
+        ; ; CALC_PROFIT test
+        ; INVOKE  CALC_PROFIT, ADDR GA1, ADDR GB1, 10, 20
+        ; MOVSX   EAX, WORD PTR GA1[18]
         ; INVOKE  PRINT_INT32, EAX
-        ; INVOKE  PRINT, ADDR UI_CRLF
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GA1[38]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GA1[58]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GA1[78]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+
+        ; STR2INT32 test
+        INVOKE  INPUT, ADDR INPUT_BUF
+        INVOKE  PRINT, ADDR UI_CRLF
+        INVOKE  STR2INT32, ADDR INPUT_CONTENT
+        INVOKE  PRINT_INT32, EAX
+        INVOKE  PRINT, ADDR UI_CRLF
 
 
         MOV     AH, 4CH
