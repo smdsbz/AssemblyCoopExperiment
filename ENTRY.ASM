@@ -18,9 +18,13 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
 
         UI_INPUT_PRO    DB 'Please input product name:', 0AH, 0DH, '$'
 
+        UI_PRO_NOTFOUND DB 'Product not found!', 0AH, 0DH, '$'
+
         INPUT_BUF       DB 100
         INPUT_COUNT     DB 0
         INPUT_CONTENT   DB 100 DUP(0)
+        UI_SHOP1        DB 'SHOP1$'
+        UI_SHOP2        DB 'SHOP2$'
 
         ; -------- USER DATA ---------
         USERNAME        DB 'smdshunto$'
@@ -34,13 +38,13 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         ; PRODUCT_LEN EQU $-GA1
         GA2 DB 'BOOK$',5 DUP(0)
         	DW 12,30,25,5,?
-        GAN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
+        GAN DB N-2 DUP('TEMPVALUE$',15,0,20,0,30,0,2,0,?,?)
         S2 DB 'SHOP2',0
         GB1 DB 'BOOK$',5 DUP(0)
         	DW 12,28,20,15,?
         GB2 DB 'PEN$',6 DUP(0)
         	DW 35,50,30,24,?
-        GBN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
+        GBN DB N-2 DUP('TEMPVALUE$',15,0,20,0,30,0,2,0,?,?)
         ; -------- Global --------
         AUTH            DB 0
 
@@ -103,6 +107,13 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         RET
 PRINT_INT32     ENDP
 
+PRINT_SEP PROC FAR STDCALL
+MOV     DL, ','
+MOV     AH, 2
+INT     21H
+RET
+PRINT_SEP ENDP
+
 STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
         ; cmp str
         MOV BX, 0
@@ -137,34 +148,65 @@ INPUT   ENDP
 
 
 ; ------------ MENU_FUNC ------------
-GET_PRO PROC FAR STDCALL USES AX BX  SHOPA:WORD, SHOPB:WORD, PRO:WORD
-MOV BX, 0
-MOV DI, SHOPA + 6
-MOV SI, SHOPB + 6
+GET_PRO PROC FAR STDCALL USES AX BX SHOPA:WORD, SHOPB:WORD, PRO:WORD
+        MOV BX, 0
+        MOV DI, SHOPA
+        MOV SI, SHOPB
+        ADD DI, 6
+        ADD SI, 6
 
-; SHOPA
-.WHILE BX > 600
-INVOKE STR_CMP, DI, PRO
-.IF AX
-JMP SHOPB
-.ENDIF
-ADD DI, BX
-.ENDW
-MOV DI, 0
-SHOPB:
-; SHOPB
-MOV BX, 0
-.WHILE BX > 600
-INVOKE STR_CMP, SI, PRO
-.IF AX
-RET
-.ENDIF
-ADD SI, BX
-.ENDW
+        ; SHOPA
+        .WHILE BX < 60
+        INVOKE STR_CMP, DI, PRO
+        .IF AX
+        JMP SHOPB_
+        .ENDIF
+        ADD BX, 20
+        ADD DI, BX
+        .ENDW
+        MOV DI, 0
+        SHOPB_:
+        ; SHOPB
+        MOV BX, 0
+        .WHILE BX < 600
+        INVOKE STR_CMP, SI, PRO
+        .IF AX
+        RET
+        .ENDIF
+        ADD BX, 20
+        ADD SI, BX
+        .ENDW
 
-MOV SI, 0
-RET
+        MOV SI, 0
+        RET
 GET_PRO ENDP
+
+
+PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD
+        INVOKE PRINT, UI_SHOP
+        INVOKE PRINT_SEP
+        INVOKE PRINT, PRO
+        INVOKE PRINT_SEP
+        MOV SI, PRO
+        ADD SI, 10
+        MOV EAX, 0
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT_SEP
+        ADD SI, 2
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT_SEP
+        ADD SI, 2
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT_SEP
+        ADD SI, 2
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT, CRLF
+        RET
+PRINT_PRO ENDP
 
 
 START:
@@ -227,7 +269,9 @@ LOGIN:
 
 MENU:
         ; print menu
+        INVOKE PRINT, OFFSET UI_SEPARATOR
         INVOKE PRINT, OFFSET UI_MENU
+        INVOKE PRINT, OFFSET UI_SEPARATOR
         ; print input hint
         INVOKE PRINT, OFFSET UI_MENU_INPUT
         ; get menu input
@@ -250,6 +294,7 @@ MENU:
         .ELSEIF AH == '3'
         .ELSEIF AH == '4'
         .ELSEIF AH == '5'
+        JMP MENU_5
         .ELSEIF AH == '6'
         JMP EXIT
         .ELSE
@@ -273,10 +318,67 @@ MENU_1:
         MOV INPUT_CONTENT[EAX], '$'
         .IF AL ; != 0
         INVOKE GET_PRO, OFFSET S1, OFFSET S2, OFFSET INPUT_CONTENT
+        .IF !DI ; == 0
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_PRO_NOTFOUND
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        .ELSE
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
+        .IF SI
+        INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF
+        .ENDIF
+        .ENDIF
         .ENDIF
         JMP MENU
 
+MENU_2:
+; edit product info
+        ; print input hint
+        INVOKE PRINT, OFFSET UI_INPUT_PRO
+        ; get product name input
+        INVOKE INPUT, OFFSET INPUT_BUF
+        INVOKE PRINT, OFFSET UI_CRLF
+        ; get input length & add '$' to tail
+        MOV AL, INPUT_COUNT
+        AND EAX, 0FFH
+        MOV INPUT_CONTENT[EAX], '$'
+        .IF AL ; != 0
+        INVOKE GET_PRO, OFFSET S1, OFFSET S2, OFFSET INPUT_CONTENT
+        .IF !DI ; == 0
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_PRO_NOTFOUND
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        .ELSE
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
+        .IF SI
+        INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF
+        .ENDIF
+        .ENDIF
+        .ENDIF
+        JMP MENU
 
+MENU_5:
+; print all products
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        ; SHOP1
+        MOV BX, 0
+        MOV DI, OFFSET GA1
+        .WHILE BX < 60
+        ADD DI, BX
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
+        ADD BX, 20
+        .ENDW
+        ; SHOP2
+        MOV BX, 0
+        MOV DI, OFFSET GB1
+        .WHILE BX < 60
+        ADD DI, BX
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP2, OFFSET UI_CRLF
+        ADD BX, 20
+        .ENDW
+        JMP MENU
 
         AND EAX, 0FFH
         ; MOV INPUT_CONTENT[EAX], '$'
