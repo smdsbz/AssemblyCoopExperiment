@@ -15,6 +15,7 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
                            '4. Sum profit rate rank  5. Print all product info  6. Exit', 0DH, 0AH, '$'
         UI_MENU_UNLOGIN DB '1. Get product info      2. Exit', 0DH, 0AH, '$'
         UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
+        UI_MENU_INPUT2  DB 'Please input your selection[1-2]:', 0DH, 0AH, '$'
         UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
 
         UI_INPUT_PRO    DB 'Please input product name:', 0AH, 0DH, '$'
@@ -283,6 +284,7 @@ EDIT1:
         .IF EAX == -1
         ; input wrong
         INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        ADD SI, -2
         JMP EDIT1
         .ELSE
         MOV [SI], AX
@@ -305,7 +307,7 @@ EDIT2:
         MOV AH, BYTE PTR [BX]
         .IF !AH ; == 0
         ; input empty
-        JMP EDIT2
+        JMP EDIT3
         .ENDIF
 
         ; str2int
@@ -314,11 +316,13 @@ EDIT2:
         .IF EAX == -1
         ; input wrong
         INVOKE PRINT, OFFSET UI_INPUT_ERROR
-        JMP EDIT1
+        ADD SI, -2
+        JMP EDIT2
         .ELSE
         MOV [SI], AX
         .ENDIF
 
+EDIT3:
         ; 进货数
         ADD SI, 2
         MOVSX EAX, WORD PTR [SI]
@@ -332,7 +336,7 @@ EDIT2:
         MOV AH, BYTE PTR [BX]
         .IF !AH ; == 0
         ; input empty
-        JMP EDIT2
+        RET
         .ENDIF
 
         ; str2int
@@ -341,7 +345,8 @@ EDIT2:
         .IF EAX == -1
         ; input wrong
         INVOKE PRINT, OFFSET UI_INPUT_ERROR
-        JMP EDIT1
+        ADD SI, -2
+        JMP EDIT3
         .ELSE
         MOV [SI], AX
         .ENDIF
@@ -476,6 +481,7 @@ LOGIN:
         JMP MENU
 
 MENU:
+.IF AUTH
         ; print menu
         INVOKE PRINT, OFFSET UI_SEPARATOR
         INVOKE PRINT, OFFSET UI_MENU
@@ -513,6 +519,38 @@ MENU:
         INVOKE PRINT, OFFSET UI_SEPARATOR
         .ENDIF
         JMP MENU
+.ELSE
+        ; print menu
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_MENU_UNLOGIN
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        ; print input hint
+        INVOKE PRINT, OFFSET UI_MENU_INPUT2
+        ; get menu input
+        INVOKE INPUT, OFFSET INPUT_BUF
+        INVOKE PRINT, OFFSET UI_CRLF
+        ; get input length
+        MOV AL, INPUT_COUNT
+        MOV AH, INPUT_CONTENT[0]
+
+        .IF AL != 1
+        ; input error
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        ; JMP MENU
+        .ELSEIF AH == '1'
+        JMP MENU_1
+        .ELSEIF AH == '2'
+        JMP EXIT
+        .ELSE
+        ; input error
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        INVOKE PRINT, OFFSET UI_INPUT_ERROR
+        INVOKE PRINT, OFFSET UI_SEPARATOR
+        .ENDIF
+        JMP MENU
+.ENDIF
 
 MENU_1:
 ; get product info
