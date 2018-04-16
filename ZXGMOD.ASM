@@ -349,36 +349,36 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         ADD     EBX, EAX
         .UNTIL  (EBX >= EDX)
 
-        ; move ranks in SHOP2 to SHOP1
-        ; get first item in SHOP1
-        MOVZX   EBX, SHOP1OFF
-        MOVZX   EAX, SNAMESIZE
-        ADD     EBX, EAX
-        ; -- get border ==> (EDX)
-        MOVZX   EDX, SHOP2OFF
+        ; ; move ranks in SHOP2 to SHOP1
+        ; ; get first item in SHOP1
+        ; MOVZX   EBX, SHOP1OFF
+        ; MOVZX   EAX, SNAMESIZE
+        ; ADD     EBX, EAX
+        ; ; -- get border ==> (EDX)
+        ; MOVZX   EDX, SHOP2OFF
+        ; ; MOVZX   EAX, SHOP1OFF
+        ; ; SUB     EDX, EAX
+        ; ; MOVZX   EAX, SHOP2OFF
+        ; ; ADD     EDX, EAX
+        ; .REPEAT
+        ; ; goto SHOP2
         ; MOVZX   EAX, SHOP1OFF
-        ; SUB     EDX, EAX
+        ; SUB     EBX, EAX
         ; MOVZX   EAX, SHOP2OFF
-        ; ADD     EDX, EAX
-        .REPEAT
-        ; goto SHOP2
-        MOVZX   EAX, SHOP1OFF
-        SUB     EBX, EAX
-        MOVZX   EAX, SHOP2OFF
-        ADD     EBX, EAX
-        ; get ranking
-        MOV     CX, [EBX][18]
-        ; go back to SHOP1
-        MOVZX   EAX, SHOP2OFF
-        SUB     EBX, EAX
-        MOVZX   EAX, SHOP1OFF
-        ADD     EBX, EAX
-        ; assignment
-        MOV     [EBX][18], CX
-        ; goto next item
-        MOVZX   EAX, SSIZE
-        ADD     EBX, EAX
-        .UNTIL  (EBX >= EDX)
+        ; ADD     EBX, EAX
+        ; ; get ranking
+        ; MOV     CX, [EBX][18]
+        ; ; go back to SHOP1
+        ; MOVZX   EAX, SHOP2OFF
+        ; SUB     EBX, EAX
+        ; MOVZX   EAX, SHOP1OFF
+        ; ADD     EBX, EAX
+        ; ; assignment
+        ; MOV     [EBX][18], CX
+        ; ; goto next item
+        ; MOVZX   EAX, SSIZE
+        ; ADD     EBX, EAX
+        ; .UNTIL  (EBX >= EDX)
 
         RET
 RANK_ITEM       ENDP
