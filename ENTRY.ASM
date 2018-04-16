@@ -107,8 +107,8 @@ PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
         RET
 PRINT_INT32     ENDP
 
-PRINT_SEP PROC FAR STDCALL
-MOV     DL, ','
+PRINT_SEP PROC FAR STDCALL USES AX DX SEP:BYTE
+MOV     DL, SEP
 MOV     AH, 2
 INT     21H
 RET
@@ -184,29 +184,54 @@ GET_PRO ENDP
 
 PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD
         INVOKE PRINT, UI_SHOP
-        INVOKE PRINT_SEP
+        INVOKE PRINT_SEP, ','
         INVOKE PRINT, PRO
-        INVOKE PRINT_SEP
+        INVOKE PRINT_SEP, ','
         MOV SI, PRO
         ADD SI, 10
         MOV EAX, 0
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
-        INVOKE PRINT_SEP
+        INVOKE PRINT_SEP, ','
         ADD SI, 2
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
-        INVOKE PRINT_SEP
+        INVOKE PRINT_SEP, ','
         ADD SI, 2
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
-        INVOKE PRINT_SEP
+        INVOKE PRINT_SEP, ','
         ADD SI, 2
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
         INVOKE PRINT, CRLF
         RET
 PRINT_PRO ENDP
+
+EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD
+        MOV SI, PRO
+        ADD SI, 10
+        MOV EAX, 0
+        ; 进货价
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT_SEP, '>'
+        INVOKE INPUT, BUF
+        ; length = buf + 100
+        ; content = buf + 101
+        ; 销售价
+        ADD SI, 2
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT_SEP, '>'
+        ; 进货数
+        ADD SI, 2
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        INVOKE PRINT_SEP, '>'
+        ; INVOKE PRINT, CRLF
+        RET
+EDIT_PRO ENDP
 
 
 START:
@@ -290,7 +315,7 @@ MENU:
         .ELSEIF AH == '1'
         JMP MENU_1
         .ELSEIF AH == '2'
-        ; TODO
+        JMP MENU_2
         .ELSEIF AH == '3'
         .ELSEIF AH == '4'
         .ELSEIF AH == '5'
@@ -351,10 +376,11 @@ MENU_2:
         INVOKE PRINT, OFFSET UI_SEPARATOR
         .ELSE
         INVOKE PRINT, OFFSET UI_SEPARATOR
-        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
-        .IF SI
-        INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF
-        .ENDIF
+        INVOKE EDIT_PRO, DI, OFFSET INPUT_BUF
+        ; INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
+        ; .IF SI
+        ; INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF
+        ; .ENDIF
         .ENDIF
         .ENDIF
         JMP MENU
