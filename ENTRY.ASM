@@ -31,7 +31,7 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         PASSWD          DB 'password$'
 
         ; -------- Shop DATA ---------
-        N EQU 30
+        N EQU 3
         S1 DB 'SHOP1',0
         GA1 DB 'PEN$',6 DUP(0)
         	DW 35,56,70,25,?
@@ -182,7 +182,7 @@ GET_PRO PROC FAR STDCALL USES AX BX SHOPA:WORD, SHOPB:WORD, PRO:WORD
 GET_PRO ENDP
 
 
-PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD
+PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD, PRINT_PROFIT:BYTE
         INVOKE PRINT, UI_SHOP
         INVOKE PRINT_SEP, ','
         INVOKE PRINT, PRO
@@ -204,6 +204,12 @@ PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD
         ADD SI, 2
         MOV AX, [SI]
         INVOKE PRINT_INT32, EAX
+        .IF PRINT_PROFIT
+        INVOKE PRINT_SEP, ','
+        ADD SI, 2
+        MOV AX, [SI]
+        INVOKE PRINT_INT32, EAX
+        .ENDIF
         INVOKE PRINT, CRLF
         RET
 PRINT_PRO ENDP
@@ -233,6 +239,63 @@ EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD
         RET
 EDIT_PRO ENDP
 
+
+CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NSIZE:WORD, SSIZE:WORD
+        MOV     EBX, 0
+        ; .WHILE  (EBX != N)
+        .REPEAT
+        PUSH    EBX                             ; save loop count
+        MOV     ECX, EBX
+        IMUL    ECX, SSIZE
+        ; LEA     ECX, GAOFF[10]
+        MOV     CX, GAOFF
+        ADD     CX, NSIZE
+        MOVZX   EAX, WORD PTR [ECX][1*2]
+        IMUL    EAX, 100
+        IMUL    WORD PTR [ECX][3*2]
+        MOVZX   EBX, WORD PTR [ECX][0*2]
+        IMUL    EBX, WORD PTR [ECX][2*2]
+        CMP     EBX, 0
+        JE      ZDIV1
+        DIV     BX
+        SUB     AX, 100
+        MOV     WORD PTR [ECX][4*2], AX
+        SUB     CX, GAOFF
+        ADD     CX, GBOFF
+        MOVZX   EAX, WORD PTR [ECX][1*2]
+        IMUL    EAX, 100
+        IMUL    WORD PTR [ECX][3*2]
+        MOVZX   EBX, WORD PTR [ECX][0*2]
+        IMUL    EBX, WORD PTR [ECX][2*2]
+        CMP     EBX, 0
+        JE      ZDIV1
+        DIV     BX
+        SUB     AX, 100
+        MOV     WORD PTR [ECX][4*2], AX
+        ; calculate avg p-r, store to AX
+        SUB     CX, GBOFF
+        ADD     CX, GAOFF
+        ADD     AX, WORD PTR [ECX][4*2]
+        SAR     AX, 1
+        ; finished calculation
+        POP     EBX                             ; restore loop count
+        INC     EBX
+        ; .ENDW
+        .UNTIL  (EBX == N)
+        RET
+ZDIV1:  ; zero-divison encountered calc-ing p-r, set both p-rs and avg p-r to 0!
+        MOV     AX, 0
+        MOV     WORD PTR [ECX][4*2], AX
+ZDIV2:  MOV     AX, 0
+        MOV     WORD PTR [ECX][4*2], AX
+        JMP     E_BOSSJ
+E_BOSSJ:; ending of BOSSJ
+        JMP     EXJOB
+EXJOB:  ; reset AUTH, get back to START
+        MOV     AL, 0                   ; reset AUTH to 0
+        MOV     AUTH, AL
+        RET
+CALC_PROFIT     ENDP
 
 START:
         MOV     AX, DATA
@@ -349,9 +412,9 @@ MENU_1:
         INVOKE PRINT, OFFSET UI_SEPARATOR
         .ELSE
         INVOKE PRINT, OFFSET UI_SEPARATOR
-        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF, 0
         .IF SI
-        INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF
+        INVOKE PRINT_PRO, SI, OFFSET UI_SHOP2, OFFSET UI_CRLF, 0
         .ENDIF
         .ENDIF
         .ENDIF
@@ -385,6 +448,11 @@ MENU_2:
         .ENDIF
         JMP MENU
 
+MENU_3:
+; sum profit rate
+        INVOKE CALC_PROFIT, OFFSET GA1, OFFSET GB1, 3, 20
+        JMP MENU
+
 MENU_5:
 ; print all products
         INVOKE PRINT, OFFSET UI_SEPARATOR
@@ -393,7 +461,7 @@ MENU_5:
         MOV DI, OFFSET GA1
         .WHILE BX < 60
         ADD DI, BX
-        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP1, OFFSET UI_CRLF, 1
         ADD BX, 20
         .ENDW
         ; SHOP2
@@ -401,7 +469,7 @@ MENU_5:
         MOV DI, OFFSET GB1
         .WHILE BX < 60
         ADD DI, BX
-        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP2, OFFSET UI_CRLF
+        INVOKE PRINT_PRO, DI, OFFSET UI_SHOP2, OFFSET UI_CRLF, 1
         ADD BX, 20
         .ENDW
         JMP MENU
