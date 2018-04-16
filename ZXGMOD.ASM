@@ -286,9 +286,70 @@ STR2INT32       ENDP
 
 
 
-RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NSIZE:WORD, SSIZE:WORD
+RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHOP2OFF:WORD, SNAMESIZE:WORD, NSIZE:WORD, SSIZE:WORD
+        ; zero pr field in SHOP2
+        ; get first item in SHOP1
+        MOVZX   EBX, SHOP2OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     EBX, EAX
+        ; zero pr field in SHOP2
+        ; -- get border ==> (EDX)
+        MOVZX   EDX, SHOP2OFF
+        MOVZX   EAX, SHOP1OFF
+        SUB     EDX, EAX
+        MOVZX   EAX, SHOP2OFF
+        ADD     EDX, EAX
+        ; set default ranking of all to 1
+        .REPEAT
+        MOV     WORD PTR [EBX][18], 1
+        MOVZX   EAX, SSIZE
+        ADD     EBX, EAX
+        .UNTIL  (EBX >= EDX)
 
-RANK_ITE        ENDP
+        ; re-get first item in SHOP1
+        MOVZX   EBX, SHOP1OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     EBX, EAX
+        ; re-get border ==> (EDX)
+        MOVZX   EDX, SHOP2OFF
+        MOVZX   EAX, SHOP1OFF
+        SUB     EDX, EAX
+        MOVZX   EAX, SHOP2OFF
+        ADD     EDX, EAX
+        .REPEAT
+        ; ECX point to first item in SHOP1
+        MOVZX   ECX, SHOP1OFF
+        MOVZX   EAX, SNAMESIZE
+        ADD     ECX, EAX
+                .REPEAT
+                MOV     AX, [EBX][18]
+                .IF     (WORD PTR [ECX][18] > AX)
+                ; goto SHOP2
+                MOVZX   EAX, SHOP1OFF
+                SUB     ECX, EAX
+                MOVZX   EAX, SHOP2OFF
+                ADD     ECX, EAX
+                ; inc its ranking
+                MOV     AX, [ECX][18]
+                INC     AX
+                MOV     [ECX][18], AX
+                ; go back to SHOP1
+                MOVZX   EAX, SHOP2OFF
+                SUB     ECX, EAX
+                MOVZX   EAX, SHOP1OFF
+                ADD     ECX, EAX
+                .ENDIF
+                ; togo next item
+                MOVZX   EAX, SSIZE
+                ADD     ECX, EAX
+                .UNTIL  (ECX >= EDX)
+        ; goto next item
+        MOVZX   EAX, SSIZE
+        ADD     EBX, EAX
+        .UNTIL  (EBX >= EDX)
+
+        RET
+RANK_ITEM       ENDP
 
 
 
@@ -304,19 +365,19 @@ START:
         ; INVOKE  PRINT, OFFSET UI_CRLF
 
         ; ; CALC_PROFIT test
-        INVOKE  CALC_PROFIT, ADDR GA1, ADDR GB1, 10, 20
-        MOVSX   EAX, WORD PTR GA1[18]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[38]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[58]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[78]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
+        ; INVOKE  CALC_PROFIT, ADDR GA1, ADDR GB1, 10, 20
+        ; MOVSX   EAX, WORD PTR GA1[18]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GA1[38]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GA1[58]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GA1[78]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
 
         ; STR2INT32 test
         ; INVOKE  INPUT, ADDR INPUT_BUF
@@ -324,6 +385,9 @@ START:
         ; INVOKE  STR2INT32, ADDR INPUT_CONTENT
         ; INVOKE  PRINT_INT32, EAX
         ; INVOKE  PRINT, ADDR UI_CRLF
+
+        ; RANK_ITEM test
+        INVOKE  RANK_ITEM, ADDR S1, ADDR S2, 6, 10, 20
 
 
         MOV     AH, 4CH
