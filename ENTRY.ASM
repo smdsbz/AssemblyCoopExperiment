@@ -29,19 +29,18 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         ; -------- Shop DATA ---------
         N EQU 30
         S1 DB 'SHOP1',0
-        	GA1 DB 'PEN$',6 DUP(0)
-        		DW 35,56,70,25,?
-        	; PRODUCT_LEN EQU $-GA1
-        	GA2 DB 'BOOK$',5 DUP(0)
-        		DW 12,30,25,5,?
-        	GAN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
-        CRLF DB 0AH,0DH,'$'
+        GA1 DB 'PEN$',6 DUP(0)
+        	DW 35,56,70,25,?
+        ; PRODUCT_LEN EQU $-GA1
+        GA2 DB 'BOOK$',5 DUP(0)
+        	DW 12,30,25,5,?
+        GAN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
         S2 DB 'SHOP2',0
-        	GB1 DB 'BOOK$',5 DUP(0)
-        		DW 12,28,20,15,?
-        	GB2 DB 'PEN$',6 DUP(0)
-        		DW 35,50,30,24,?
-        	GBN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
+        GB1 DB 'BOOK$',5 DUP(0)
+        	DW 12,28,20,15,?
+        GB2 DB 'PEN$',6 DUP(0)
+        	DW 35,50,30,24,?
+        GBN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
         ; -------- Global --------
         AUTH            DB 0
 
@@ -138,7 +137,34 @@ INPUT   ENDP
 
 
 ; ------------ MENU_FUNC ------------
-GET_PRO PROC FAR STDCALL USES SI SHOPA:WORD
+GET_PRO PROC FAR STDCALL USES AX BX  SHOPA:WORD, SHOPB:WORD, PRO:WORD
+MOV BX, 0
+MOV DI, SHOPA + 6
+MOV SI, SHOPB + 6
+
+; SHOPA
+.WHILE BX > 600
+INVOKE STR_CMP, DI, PRO
+.IF AX
+JMP SHOPB
+.ENDIF
+ADD DI, BX
+.ENDW
+MOV DI, 0
+SHOPB:
+; SHOPB
+MOV BX, 0
+.WHILE BX > 600
+INVOKE STR_CMP, SI, PRO
+.IF AX
+RET
+.ENDIF
+ADD SI, BX
+.ENDW
+
+MOV SI, 0
+RET
+GET_PRO ENDP
 
 
 START:
@@ -246,7 +272,7 @@ MENU_1:
         AND EAX, 0FFH
         MOV INPUT_CONTENT[EAX], '$'
         .IF AL ; != 0
-
+        INVOKE GET_PRO, OFFSET S1, OFFSET S2, OFFSET INPUT_CONTENT
         .ENDIF
         JMP MENU
 
