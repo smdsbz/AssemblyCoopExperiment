@@ -443,6 +443,7 @@ START:
 
         ; print welcome
         INVOKE PRINT, OFFSET UI_WELCOME
+        INVOKE PRINT, OFFSET UI_SEPARATOR
 
 LOGIN:
         ; print 'please input username'
@@ -481,7 +482,9 @@ LOGIN:
         ; cmp passowrd
         INVOKE STR_CMP, OFFSET PASSWD, OFFSET INPUT_CONTENT
         .IF !AX
+        INVOKE PRINT, OFFSET UI_SEPARATOR
         INVOKE PRINT, OFFSET UI_LOGIN_ERROR
+        INVOKE PRINT, OFFSET UI_SEPARATOR
         JMP LOGIN
         .ENDIF
         MOV AUTH, 1
