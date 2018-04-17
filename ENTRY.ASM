@@ -60,13 +60,9 @@ PRINT   PROC FAR STDCALL USES EAX EDX STROFFSET:WORD
         ;       STROFFSET       - [WORD] eff-addr of source string
         ; Return:
         ;       (None)
-        ; PUSH    EAX
-        ; PUSH    EDX
         MOV     DX, STROFFSET
         MOV     AH, 9
         INT     21H
-        ; POP     EDX
-        ; POP     EAX
         RET
 PRINT   ENDP
 
@@ -295,10 +291,6 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         ADD     EBX, EAX
         ; re-get border for SHOP1 ==> (EDX)
         MOVZX   EDX, SHOP2OFF
-        ; MOVZX   EAX, SHOP1OFF
-        ; SUB     EDX, EAX
-        ; MOVZX   EAX, SHOP1OFF
-        ; ADD     EDX, EAX
         .REPEAT
         ; ECX point to first item in SHOP1
         MOVZX   ECX, SHOP1OFF
@@ -331,37 +323,6 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         MOVZX   EAX, SSIZE
         ADD     EBX, EAX
         .UNTIL  (EBX >= EDX)
-
-        ; ; move ranks in SHOP2 to SHOP1
-        ; ; get first item in SHOP1
-        ; MOVZX   EBX, SHOP1OFF
-        ; MOVZX   EAX, SNAMESIZE
-        ; ADD     EBX, EAX
-        ; ; -- get border ==> (EDX)
-        ; MOVZX   EDX, SHOP2OFF
-        ; ; MOVZX   EAX, SHOP1OFF
-        ; ; SUB     EDX, EAX
-        ; ; MOVZX   EAX, SHOP2OFF
-        ; ; ADD     EDX, EAX
-        ; .REPEAT
-        ; ; goto SHOP2
-        ; MOVZX   EAX, SHOP1OFF
-        ; SUB     EBX, EAX
-        ; MOVZX   EAX, SHOP2OFF
-        ; ADD     EBX, EAX
-        ; ; get ranking
-        ; MOV     CX, [EBX][18]
-        ; ; go back to SHOP1
-        ; MOVZX   EAX, SHOP2OFF
-        ; SUB     EBX, EAX
-        ; MOVZX   EAX, SHOP1OFF
-        ; ADD     EBX, EAX
-        ; ; assignment
-        ; MOV     [EBX][18], CX
-        ; ; goto next item
-        ; MOVZX   EAX, SSIZE
-        ; ADD     EBX, EAX
-        ; .UNTIL  (EBX >= EDX)
 
         RET
 RANK_ITEM       ENDP
@@ -514,30 +475,12 @@ CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NS
         ; .ENDW
         .UNTIL  (EBX == N)
         RET
-; ZDIV1:  ; zero-divison encountered calc-ing p-r, set both p-rs and avg p-r to 0!
-;         MOV     AX, 0
-;         MOV     WORD PTR [ECX][4*2], AX
-; ZDIV2:  MOV     AX, 0
-;         MOV     WORD PTR [ECX][4*2], AX
-;         JMP     E_BOSSJ
-; E_BOSSJ:; ending of BOSSJ
-;         JMP     EXJOB
-; EXJOB:  ; reset AUTH, get back to START
-;         MOV     AL, 0                   ; reset AUTH to 0
-;         MOV     AUTH, AL
-;         RET
 CALC_PROFIT     ENDP
 
 
 START:
         MOV     AX, DATA
         MOV     DS, AX
-
-        ; INVOKE  PRINT, OFFSET UI_WELCOME
-        ; INVOKE  PRINT_INT32, -123
-        ; INVOKE  PRINT, OFFSET UI_CRLF
-        ; INVOKE  PRINT_INT32, 1234
-        ; INVOKE  PRINT, OFFSET UI_CRLF
 
         ; print welcome
         INVOKE PRINT, OFFSET UI_WELCOME
@@ -743,21 +686,7 @@ MENU_5:
         ADD BX, 20
         .ENDW
         JMP MENU
-
-        AND EAX, 0FFH
-        ; MOV INPUT_CONTENT[EAX], '$'
-
-        MOV SI, 0
-        ; input test
-        INVOKE  INPUT, OFFSET INPUT_BUF
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOV     AL, INPUT_COUNT
-        AND     EAX, 0FFH
-        INVOKE  PRINT, OFFSET INPUT_CONTENT
-
-        ; str cmp test
-        INVOKE STR_CMP, OFFSET UI_WELCOME, OFFSET UI_WELCOME
-        INVOKE STR_CMP, OFFSET UI_WELCOME, OFFSET UI_CRLF
+        
 EXIT:
         MOV     AH, 4CH
         INT     21H
