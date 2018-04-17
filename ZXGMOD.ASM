@@ -264,14 +264,15 @@ STR2INT32       PROC FAR STDCALL USES EBX ECX EDX EDI STROFFSET:WORD
         .ELSEIF (BYTE PTR [EBX] == '$')
         MOV     EAX, -1
         RET
-        .ELSEIF (BYTE PTR [EBX] < '0' || BYTE PTR [EBX] > '9')
-        MOV     EAX, -1
-        RET
         .ENDIF
         ; convert to Int32
         .REPEAT
         MUL     ECX
         MOVZX   EDX, BYTE PTR [EBX]
+        .IF     (EDX < '0' || EDX > '9')
+        MOV     EAX, -1
+        RET
+        .ENDIF
         SUB     EDX, 30H
         ADD     EAX, EDX
         INC     EBX
@@ -288,7 +289,7 @@ STR2INT32       ENDP
 
 RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHOP2OFF:WORD, SNAMESIZE:WORD, NSIZE:WORD, SSIZE:WORD
         ; zero pr field in SHOP2
-        ; get first item in SHOP1
+        ; get first item in SHOP2
         MOVZX   EBX, SHOP2OFF
         MOVZX   EAX, SNAMESIZE
         ADD     EBX, EAX
@@ -321,20 +322,11 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
                 .REPEAT
                 MOV     AX, [EBX][18]
                 .IF     (WORD PTR [ECX][18] > AX)
-                ; goto SHOP2
-                MOVZX   EAX, SHOP1OFF
-                SUB     ECX, EAX
-                MOVZX   EAX, SHOP2OFF
-                ADD     ECX, EAX
-                ; inc its ranking
-                MOV     AX, [ECX][18]
+                ; inc counting in SHOP2
+                INVOKE  GET_PRO, SHOP1OFF, SHOP2OFF, CX
+                MOV     AX, [SI][18]
                 INC     AX
-                MOV     [ECX][18], AX
-                ; go back to SHOP1
-                MOVZX   EAX, SHOP2OFF
-                SUB     ECX, EAX
-                MOVZX   EAX, SHOP1OFF
-                ADD     ECX, EAX
+                MOV     [SI][18], AX
                 .ENDIF
                 ; goto next item
                 MOVZX   EAX, SSIZE
@@ -385,16 +377,16 @@ START:
 
         ; RANK_ITEM test
         INVOKE  RANK_ITEM, ADDR S1, ADDR S2, 6, 10, 20
-        MOVSX   EAX, WORD PTR GA1[18]
+        MOVSX   EAX, WORD PTR GB1[18]
         INVOKE  PRINT_INT32, EAX
         INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[38]
+        MOVSX   EAX, WORD PTR GB1[38]
         INVOKE  PRINT_INT32, EAX
         INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[58]
+        MOVSX   EAX, WORD PTR GB1[58]
         INVOKE  PRINT_INT32, EAX
         INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GA1[78]
+        MOVSX   EAX, WORD PTR GB1[78]
         INVOKE  PRINT_INT32, EAX
         INVOKE  PRINT, OFFSET UI_CRLF
 
