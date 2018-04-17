@@ -267,7 +267,7 @@ PRINT_PRO ENDP
 
 RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHOP2OFF:WORD, SNAMESIZE:WORD, NSIZE:WORD, SSIZE:WORD
         ; zero pr field in SHOP2
-        ; get first item in SHOP1
+        ; get first item in SHOP2
         MOVZX   EBX, SHOP2OFF
         MOVZX   EAX, SNAMESIZE
         ADD     EBX, EAX
@@ -300,20 +300,11 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
                 .REPEAT
                 MOV     AX, [EBX][18]
                 .IF     (WORD PTR [ECX][18] > AX)
-                ; goto SHOP2
-                MOVZX   EAX, SHOP1OFF
-                SUB     ECX, EAX
-                MOVZX   EAX, SHOP2OFF
-                ADD     ECX, EAX
-                ; inc its ranking
-                MOV     AX, [ECX][18]
+                ; inc counting in SHOP2
+                INVOKE  GET_PRO, SHOP1OFF, SHOP2OFF, CX
+                MOV     AX, [SI][18]
                 INC     AX
-                MOV     [ECX][18], AX
-                ; go back to SHOP1
-                MOVZX   EAX, SHOP2OFF
-                SUB     ECX, EAX
-                MOVZX   EAX, SHOP1OFF
-                ADD     ECX, EAX
+                MOV     [SI][18], AX
                 .ENDIF
                 ; goto next item
                 MOVZX   EAX, SSIZE
@@ -323,6 +314,7 @@ RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHO
         MOVZX   EAX, SSIZE
         ADD     EBX, EAX
         .UNTIL  (EBX >= EDX)
+
 
         RET
 RANK_ITEM       ENDP
