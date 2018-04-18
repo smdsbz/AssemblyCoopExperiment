@@ -1,51 +1,57 @@
+;         PUBLIC  PRINT, PRINT_INT32, INPUT, CALC_PROFIT, STR2INT32
+;         PUBLIC  STR_CMP, GET_PRO, RANK_ITEM
 .386
+        INCLUDE ZXGMOD.INC
 STACK   SEGMENT USE16 STACK
         DB 200 DUP(0)
 STACK   ENDS
-DATA    SEGMENT USE16 PUBLIC 'entry'
-        ; -------- UI --------
-        UI_SEPARATOR    DB '--------------------------------------------------------------------', 0DH, 0AH, '$'
-        UI_WELCOME      DB 'Welcome!', 0DH, 0AH, '$'
-        UI_USERNAME     DB 'Please input your usermane:', 0DH, 0AH, '$'
-        UI_PASSWD       DB 'Please input your password', 0DH, 0AH, '$'
-        UI_LOGIN_ERROR  DB 'Username or password incorrect, please input again!', 0DH, 0AH, '$'
-        UI_CRLF         DB 0DH, 0AH, '$'
-            ; --------- MENU ---------
-        UI_MENU         DB '1. Get product info      2. Edit product info       3. Sum average profit rate', 0DH, 0AH,
-                           '4. Sum profit rate rank  5. Print all product info  6. Exit', 0DH, 0AH, '$'
-        UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
-        UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
-
-        UI_INPUT_PRO    DB 'Please input product name:', 0AH, 0DH, '$'
-
-        INPUT_BUF       DB 100
-        INPUT_COUNT     DB 0
-        INPUT_CONTENT   DB 100 DUP(0)
-
-        ; -------- USER DATA ---------
-        USERNAME        DB 'smdshunto$'
-        PASSWD          DB 'password$'
-
-        ; -------- Shop DATA ---------
-        N EQU 30
-        S1 DB 'SHOP1',0
-        	GA1 DB 'PEN$',6 DUP(0)
-        		DW 35,56,70,25,1
-        	; PRODUCT_LEN EQU $-GA1
-        	GA2 DB 'BOOK$',5 DUP(0)
-        		DW 12,30,25,5,?
-        	GAN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
-        CRLF DB 0AH,0DH,'$'
-        S2 DB 'SHOP2',0
-        	GB1 DB 'BOOK$',5 DUP(0)
-        		DW 12,28,20,15,?
-        	GB2 DB 'PEN$',6 DUP(0)
-        		DW 35,50,30,24,?
-        	GBN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
-        ; -------- Global --------
-        AUTH            DB 0
-
+DATA    SEGMENT USE16
+        INCLUDE CONFIG.INC
 DATA    ENDS
+; DATA    SEGMENT USE16 PUBLIC 'entry'
+;         ; -------- UI --------
+;         UI_SEPARATOR    DB '--------------------------------------------------------------------', 0DH, 0AH, '$'
+;         UI_WELCOME      DB 'Welcome!', 0DH, 0AH, '$'
+;         UI_USERNAME     DB 'Please input your usermane:', 0DH, 0AH, '$'
+;         UI_PASSWD       DB 'Please input your password', 0DH, 0AH, '$'
+;         UI_LOGIN_ERROR  DB 'Username or password incorrect, please input again!', 0DH, 0AH, '$'
+;         UI_CRLF         DB 0DH, 0AH, '$'
+;             ; --------- MENU ---------
+;         UI_MENU         DB '1. Get product info      2. Edit product info       3. Sum average profit rate', 0DH, 0AH,
+;                            '4. Sum profit rate rank  5. Print all product info  6. Exit', 0DH, 0AH, '$'
+;         UI_MENU_INPUT   DB 'Please input your selection[1-6]:', 0DH, 0AH, '$'
+;         UI_INPUT_ERROR  DB 'Wrong input number, please input again!', 0DH, 0AH, '$'
+; 
+;         UI_INPUT_PRO    DB 'Please input product name:', 0AH, 0DH, '$'
+; 
+;         INPUT_BUF       DB 100
+;         INPUT_COUNT     DB 0
+;         INPUT_CONTENT   DB 100 DUP(0)
+; 
+;         ; -------- USER DATA ---------
+;         USERNAME        DB 'smdshunto$'
+;         PASSWD          DB 'password$'
+; 
+;         ; -------- Shop DATA ---------
+;         N EQU 3
+;         S1 DB 'SHOP1',0
+;         	GA1 DB 'PEN$',6 DUP(0)
+;         		DW 35,56,70,25,1
+;         	; PRODUCT_LEN EQU $-GA1
+;         	GA2 DB 'BOOK$',5 DUP(0)
+;         		DW 12,30,25,5,?
+;         	GAN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
+;         CRLF DB 0AH,0DH,'$'
+;         S2 DB 'SHOP2',0
+;         	GB1 DB 'BOOK$',5 DUP(0)
+;         		DW 12,28,20,15,?
+;         	GB2 DB 'PEN$',6 DUP(0)
+;         		DW 35,50,30,24,?
+;         	GBN DB N-2 DUP('TEMP-VALUE',15,0,20,0,30,0,2,0,?,?)
+;         ; -------- Global --------
+;         AUTH            DB 0
+; 
+; DATA    ENDS
 
 CODE    SEGMENT USE16
         ASSUME  CS:CODE, DS:DATA, SS:STACK
@@ -376,19 +382,19 @@ START:
         ; INVOKE  PRINT, ADDR UI_CRLF
 
         ; RANK_ITEM test
-        INVOKE  RANK_ITEM, ADDR S1, ADDR S2, 6, 10, 20
-        MOVSX   EAX, WORD PTR GB1[18]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GB1[38]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GB1[58]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
-        MOVSX   EAX, WORD PTR GB1[78]
-        INVOKE  PRINT_INT32, EAX
-        INVOKE  PRINT, OFFSET UI_CRLF
+        ; INVOKE  RANK_ITEM, ADDR S1, ADDR S2, 6, 10, 20
+        ; MOVSX   EAX, WORD PTR GB1[18]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GB1[38]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GB1[58]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
+        ; MOVSX   EAX, WORD PTR GB1[78]
+        ; INVOKE  PRINT_INT32, EAX
+        ; INVOKE  PRINT, OFFSET UI_CRLF
 
 
         MOV     AH, 4CH

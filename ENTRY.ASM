@@ -1,4 +1,7 @@
 .386
+;         EXTRN  PRINT:FAR, PRINT_INT32:FAR, INPUT:FAR, CALC_PROFIT:FAR, STR2INT32:FAR
+;         EXTRN  STR_CMP:FAR, GET_PRO:FAR, RANK_ITEM:FAR
+        INCLUDE      ZXGMOD.INC
 STACK   SEGMENT USE16 STACK
         DB 200 DUP(0)
 STACK   ENDS
@@ -33,7 +36,8 @@ DATA    SEGMENT USE16 PUBLIC 'entry'
         PASSWD          DB 'password$'
 
         ; -------- Shop DATA ---------
-        N EQU 4
+        ; N EQU 4
+        INCLUDE CONFIG.INC
         S1 DB 'SHOP1',0
         GA1 DB 'PEN$',6 DUP(0)
         	DW 35,56,70,25,?
@@ -54,61 +58,61 @@ DATA    ENDS
 CODE    SEGMENT USE16
         ASSUME  CS:CODE, DS:DATA, SS:STACK
 
-PRINT   PROC FAR STDCALL USES EAX EDX STROFFSET:WORD
-        ; simple print function
-        ; Args:
-        ;       STROFFSET       - [WORD] eff-addr of source string
-        ; Return:
-        ;       (None)
-        MOV     DX, STROFFSET
-        MOV     AH, 9
-        INT     21H
-        RET
-PRINT   ENDP
-
-PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
-        ; convert Int32 to printable
-        ; Args:
-        ;       NUM             - [DWORD] Int32 to print
-        ; Return:
-        ;       (None)
-        MOV     EBX, 0
-        MOV     EAX, NUM
-        .IF     (EAX == 0)              ; zero checking
-        MOV     DL, '0'
-        MOV     AH, 2
-        INT     21H
-        RET
-        .ENDIF
-        ; negative sign?
-        ; AND     EAX, 80000000H
-        .IF     (EAX & 80000000H)
-        ; output negative sign
-        MOV     DL, '-'
-        MOV     AH, 2
-        INT     21H
-        MOV     EAX, NUM
-        NEG     EAX             ; (eax) = abs(eax)
-        .ENDIF
-        ; convert loop
-        MOV     ECX, 10         ; divider
-        .WHILE  (EAX != 0)
-        CDQ
-        IDIV    ECX
-        ; output remainder, in EDX
-        ADD     EDX, 30H        ; to ASCII
-        PUSH    EDX
-        INC     EBX
-        .ENDW
-        ; output loop
-        .WHILE  (EBX != 0)
-        POP     EDX             ; start from highest digit
-        MOV     AH, 2
-        INT     21H
-        DEC     EBX
-        .ENDW
-        RET
-PRINT_INT32     ENDP
+; PRINT   PROC FAR STDCALL USES EAX EDX STROFFSET:WORD
+;         ; simple print function
+;         ; Args:
+;         ;       STROFFSET       - [WORD] eff-addr of source string
+;         ; Return:
+;         ;       (None)
+;         MOV     DX, STROFFSET
+;         MOV     AH, 9
+;         INT     21H
+;         RET
+; PRINT   ENDP
+; 
+; PRINT_INT32     PROC FAR STDCALL USES EAX EBX ECX EDX NUM:DWORD
+;         ; convert Int32 to printable
+;         ; Args:
+;         ;       NUM             - [DWORD] Int32 to print
+;         ; Return:
+;         ;       (None)
+;         MOV     EBX, 0
+;         MOV     EAX, NUM
+;         .IF     (EAX == 0)              ; zero checking
+;         MOV     DL, '0'
+;         MOV     AH, 2
+;         INT     21H
+;         RET
+;         .ENDIF
+;         ; negative sign?
+;         ; AND     EAX, 80000000H
+;         .IF     (EAX & 80000000H)
+;         ; output negative sign
+;         MOV     DL, '-'
+;         MOV     AH, 2
+;         INT     21H
+;         MOV     EAX, NUM
+;         NEG     EAX             ; (eax) = abs(eax)
+;         .ENDIF
+;         ; convert loop
+;         MOV     ECX, 10         ; divider
+;         .WHILE  (EAX != 0)
+;         CDQ
+;         IDIV    ECX
+;         ; output remainder, in EDX
+;         ADD     EDX, 30H        ; to ASCII
+;         PUSH    EDX
+;         INC     EBX
+;         .ENDW
+;         ; output loop
+;         .WHILE  (EBX != 0)
+;         POP     EDX             ; start from highest digit
+;         MOV     AH, 2
+;         INT     21H
+;         DEC     EBX
+;         .ENDW
+;         RET
+; PRINT_INT32     ENDP
 
 PRINT_SEP PROC FAR STDCALL USES AX DX SEP:BYTE
         ; print separator
@@ -121,117 +125,117 @@ PRINT_SEP PROC FAR STDCALL USES AX DX SEP:BYTE
         RET
 PRINT_SEP ENDP
 
-STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
-        ; compare str
-        ; Args:
-        ;    STR1_OFFSET: str1 address
-        ;    STR2_OFFSET: str2 address
-        ; Return: MOV AX,1 if same else MOV AX,0
-        MOV BX, 0
-        MOV CH, 0
-        MOV CL, 0
-        MOV DI, STR1_OFFSET
-        MOV SI, STR2_OFFSET
-        .WHILE (CH != '$') && (CL != '$')
-        MOV CH, [DI + BX]
-        MOV CL, [SI + BX]
-        INC BX
-        .IF CH != CL
-        MOV AX, 0
-        RET
-        .ENDIF
-        .ENDW
-        MOV AX, 1
-        RET
-STR_CMP ENDP
+; STR_CMP    PROC FAR STDCALL USES BX CX DI SI STR1_OFFSET:WORD, STR2_OFFSET:WORD
+;         ; compare str
+;         ; Args:
+;         ;    STR1_OFFSET: str1 address
+;         ;    STR2_OFFSET: str2 address
+;         ; Return: MOV AX,1 if same else MOV AX,0
+;         MOV BX, 0
+;         MOV CH, 0
+;         MOV CL, 0
+;         MOV DI, STR1_OFFSET
+;         MOV SI, STR2_OFFSET
+;         .WHILE (CH != '$') && (CL != '$')
+;         MOV CH, [DI + BX]
+;         MOV CL, [SI + BX]
+;         INC BX
+;         .IF CH != CL
+;         MOV AX, 0
+;         RET
+;         .ENDIF
+;         .ENDW
+;         MOV AX, 1
+;         RET
+; STR_CMP ENDP
 
-STR2INT32       PROC FAR STDCALL USES EBX ECX EDX EDI STROFFSET:WORD
-        ; str2int32
-        ; Args:
-        ;    SEP: separator char
-        ; Return: None
-        MOV     EAX, 0
-        MOVZX   EBX, STROFFSET
-        MOV     ECX, 10                         ; NOTE: default base is 10
-        MOV     EDX, 30H
-        .IF     (BYTE PTR [EBX] == '-')         ; skip negative sign
-        INC     EBX
-        .ELSEIF (BYTE PTR [EBX] == '$')
-        MOV     EAX, -1
-        RET
-        .ELSEIF (BYTE PTR [EBX] < '0' || BYTE PTR [EBX] > '9')
-        MOV     EAX, -1
-        RET
-        .ENDIF
-        ; convert to Int32
-        .REPEAT
-        MUL     ECX
-        MOVZX   EDX, BYTE PTR [EBX]
-        SUB     EDX, 30H
-        ADD     EAX, EDX
-        INC     EBX
-        .UNTIL  (BYTE PTR [EBX] == '$')
-        ; signed?
-        MOVZX   EBX, STROFFSET
-        .IF     (BYTE PTR [EBX] == '-')
-        NEG     EAX
-        .ENDIF
-        RET
-STR2INT32       ENDP
-
-
-INPUT   PROC FAR STDCALL USES EAX EDX EDI BUFOFFSET:WORD
-        ; simple input function
-        ; Args:
-        ;       BUFOFFSET       - [WORD] target buffer block
-        ; Return:
-        ;       (None)
-        MOV     DX, BUFOFFSET
-        MOV     AH, 10
-        INT     21H
-        MOVZX   EDX, BUFOFFSET
-        INC     EDX
-        MOV     AL, BYTE PTR [EDX]
-        AND     EAX, 0FFH
-        INC     EDX
-        MOV     BYTE PTR [EDX][EAX], '$'
-        RET
-INPUT   ENDP
+; STR2INT32       PROC FAR STDCALL USES EBX ECX EDX EDI STROFFSET:WORD
+;         ; str2int32
+;         ; Args:
+;         ;    SEP: separator char
+;         ; Return: None
+;         MOV     EAX, 0
+;         MOVZX   EBX, STROFFSET
+;         MOV     ECX, 10                         ; NOTE: default base is 10
+;         MOV     EDX, 30H
+;         .IF     (BYTE PTR [EBX] == '-')         ; skip negative sign
+;         INC     EBX
+;         .ELSEIF (BYTE PTR [EBX] == '$')
+;         MOV     EAX, -1
+;         RET
+;         .ELSEIF (BYTE PTR [EBX] < '0' || BYTE PTR [EBX] > '9')
+;         MOV     EAX, -1
+;         RET
+;         .ENDIF
+;         ; convert to Int32
+;         .REPEAT
+;         MUL     ECX
+;         MOVZX   EDX, BYTE PTR [EBX]
+;         SUB     EDX, 30H
+;         ADD     EAX, EDX
+;         INC     EBX
+;         .UNTIL  (BYTE PTR [EBX] == '$')
+;         ; signed?
+;         MOVZX   EBX, STROFFSET
+;         .IF     (BYTE PTR [EBX] == '-')
+;         NEG     EAX
+;         .ENDIF
+;         RET
+; STR2INT32       ENDP
+; 
+; 
+; INPUT   PROC FAR STDCALL USES EAX EDX EDI BUFOFFSET:WORD
+;         ; simple input function
+;         ; Args:
+;         ;       BUFOFFSET       - [WORD] target buffer block
+;         ; Return:
+;         ;       (None)
+;         MOV     DX, BUFOFFSET
+;         MOV     AH, 10
+;         INT     21H
+;         MOVZX   EDX, BUFOFFSET
+;         INC     EDX
+;         MOV     AL, BYTE PTR [EDX]
+;         AND     EAX, 0FFH
+;         INC     EDX
+;         MOV     BYTE PTR [EDX][EAX], '$'
+;         RET
+; INPUT   ENDP
 
 
 ; ------------ MENU_FUNC ------------
-GET_PRO PROC FAR STDCALL USES AX BX SHOPA:WORD, SHOPB:WORD, PRO:WORD
-        MOV BX, 0
-        MOV DI, SHOPA
-        MOV SI, SHOPB
-        ADD DI, 6
-        ADD SI, 6
-
-        ; SHOPA
-        .WHILE BX < 60
-        INVOKE STR_CMP, DI, PRO
-        .IF AX
-        JMP SHOPB_
-        .ENDIF
-        ADD BX, 20
-        ADD DI, BX
-        .ENDW
-        MOV DI, 0
-        SHOPB_:
-        ; SHOPB
-        MOV BX, 0
-        .WHILE BX < 600
-        INVOKE STR_CMP, SI, PRO
-        .IF AX
-        RET
-        .ENDIF
-        ADD BX, 20
-        ADD SI, BX
-        .ENDW
-
-        MOV SI, 0
-        RET
-GET_PRO ENDP
+; GET_PRO PROC FAR STDCALL USES AX BX SHOPA:WORD, SHOPB:WORD, PRO:WORD
+;         MOV BX, 0
+;         MOV DI, SHOPA
+;         MOV SI, SHOPB
+;         ADD DI, 6
+;         ADD SI, 6
+; 
+;         ; SHOPA
+;         .WHILE BX < 60
+;         INVOKE STR_CMP, DI, PRO
+;         .IF AX
+;         JMP SHOPB_
+;         .ENDIF
+;         ADD BX, 20
+;         ADD DI, BX
+;         .ENDW
+;         MOV DI, 0
+;         SHOPB_:
+;         ; SHOPB
+;         MOV BX, 0
+;         .WHILE BX < 600
+;         INVOKE STR_CMP, SI, PRO
+;         .IF AX
+;         RET
+;         .ENDIF
+;         ADD BX, 20
+;         ADD SI, BX
+;         .ENDW
+; 
+;         MOV SI, 0
+;         RET
+; GET_PRO ENDP
 
 
 PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD, PRINT_PROFIT:BYTE
@@ -265,59 +269,59 @@ PRINT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, UI_SHOP:WORD, CRLF:WORD, PRINT_
         RET
 PRINT_PRO ENDP
 
-RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHOP2OFF:WORD, SNAMESIZE:WORD, NSIZE:WORD, SSIZE:WORD
-        ; zero pr field in SHOP2
-        ; get first item in SHOP2
-        MOVZX   EBX, SHOP2OFF
-        MOVZX   EAX, SNAMESIZE
-        ADD     EBX, EAX
-        ; zero pr field in SHOP2
-        ; -- get border ==> (EDX)
-        MOVZX   EDX, SHOP2OFF
-        MOVZX   EAX, SHOP1OFF
-        SUB     EDX, EAX
-        MOVZX   EAX, SHOP2OFF
-        ADD     EDX, EAX
-        ; set default ranking of all to 1
-        .REPEAT
-        MOV     WORD PTR [EBX][18], 1
-        MOVZX   EAX, SSIZE
-        ADD     EBX, EAX
-        .UNTIL  (EBX >= EDX)
-
-        ; re-get first item in SHOP1 ==> (EBX)
-        MOVZX   EBX, SHOP1OFF
-        MOVZX   EAX, SNAMESIZE
-        ADD     EBX, EAX
-        ; re-get border for SHOP1 ==> (EDX)
-        MOVZX   EDX, SHOP2OFF
-        .REPEAT
-        ; ECX point to first item in SHOP1
-        MOVZX   ECX, SHOP1OFF
-        MOVZX   EAX, SNAMESIZE
-        ADD     ECX, EAX
-                ; stack ranking up
-                .REPEAT
-                MOV     AX, [EBX][18]
-                .IF     (WORD PTR [ECX][18] > AX)
-                ; inc counting in SHOP2
-                INVOKE  GET_PRO, SHOP1OFF, SHOP2OFF, CX
-                MOV     AX, [SI][18]
-                INC     AX
-                MOV     [SI][18], AX
-                .ENDIF
-                ; goto next item
-                MOVZX   EAX, SSIZE
-                ADD     ECX, EAX
-                .UNTIL  (ECX >= EDX)
-        ; goto next item
-        MOVZX   EAX, SSIZE
-        ADD     EBX, EAX
-        .UNTIL  (EBX >= EDX)
-
-
-        RET
-RANK_ITEM       ENDP
+; RANK_ITEM       PROC FAR STDCALL USES EAX EBX ECX EDX EDI ESI SHOP1OFF:WORD, SHOP2OFF:WORD, SNAMESIZE:WORD, NSIZE:WORD, SSIZE:WORD
+;         ; zero pr field in SHOP2
+;         ; get first item in SHOP2
+;         MOVZX   EBX, SHOP2OFF
+;         MOVZX   EAX, SNAMESIZE
+;         ADD     EBX, EAX
+;         ; zero pr field in SHOP2
+;         ; -- get border ==> (EDX)
+;         MOVZX   EDX, SHOP2OFF
+;         MOVZX   EAX, SHOP1OFF
+;         SUB     EDX, EAX
+;         MOVZX   EAX, SHOP2OFF
+;         ADD     EDX, EAX
+;         ; set default ranking of all to 1
+;         .REPEAT
+;         MOV     WORD PTR [EBX][18], 1
+;         MOVZX   EAX, SSIZE
+;         ADD     EBX, EAX
+;         .UNTIL  (EBX >= EDX)
+; 
+;         ; re-get first item in SHOP1 ==> (EBX)
+;         MOVZX   EBX, SHOP1OFF
+;         MOVZX   EAX, SNAMESIZE
+;         ADD     EBX, EAX
+;         ; re-get border for SHOP1 ==> (EDX)
+;         MOVZX   EDX, SHOP2OFF
+;         .REPEAT
+;         ; ECX point to first item in SHOP1
+;         MOVZX   ECX, SHOP1OFF
+;         MOVZX   EAX, SNAMESIZE
+;         ADD     ECX, EAX
+;                 ; stack ranking up
+;                 .REPEAT
+;                 MOV     AX, [EBX][18]
+;                 .IF     (WORD PTR [ECX][18] > AX)
+;                 ; inc counting in SHOP2
+;                 INVOKE  GET_PRO, SHOP1OFF, SHOP2OFF, CX
+;                 MOV     AX, [SI][18]
+;                 INC     AX
+;                 MOV     [SI][18], AX
+;                 .ENDIF
+;                 ; goto next item
+;                 MOVZX   EAX, SSIZE
+;                 ADD     ECX, EAX
+;                 .UNTIL  (ECX >= EDX)
+;         ; goto next item
+;         MOVZX   EAX, SSIZE
+;         ADD     EBX, EAX
+;         .UNTIL  (EBX >= EDX)
+; 
+; 
+;         RET
+; RANK_ITEM       ENDP
 
 
 EDIT_PRO PROC FAR STDCALL USES EAX SI PRO:WORD, BUF:WORD, COUNT:WORD, CONTENT:WORD, CRLF:WORD
@@ -413,61 +417,61 @@ EDIT3:
 EDIT_PRO ENDP
 
 
-CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NSIZE:WORD, SSIZE:WORD
-        MOV     EBX, 0
-        ; .WHILE  (EBX != N)
-        .REPEAT
-        PUSH    EBX                             ; save loop count
-        MOV     ECX, EBX
-        IMUL    ECX, SSIZE
-        ; LEA     ECX, GAOFF[10]
-        ADD     CX, GAOFF
-        ADD     CX, NSIZE
-        MOVZX   EAX, WORD PTR [ECX][1*2]
-        IMUL    EAX, 100
-        IMUL    WORD PTR [ECX][3*2]
-        MOVZX   EBX, WORD PTR [ECX][0*2]
-        IMUL    EBX, WORD PTR [ECX][2*2]
-        .IF     (EBX == 0)                      ; zero div checking
-        MOV     WORD PTR [ECX][4*2], 0
-        INC     EBX
-        .CONTINUE
-        .ENDIF
-        ; CMP     EBX, 0
-        ; JE      ZDIV1
-        DIV     BX
-        SUB     AX, 100
-        MOV     WORD PTR [ECX][4*2], AX
-        SUB     CX, GAOFF
-        ADD     CX, GBOFF
-        MOVZX   EAX, WORD PTR [ECX][1*2]
-        IMUL    EAX, 100
-        IMUL    WORD PTR [ECX][3*2]
-        MOVZX   EBX, WORD PTR [ECX][0*2]
-        IMUL    EBX, WORD PTR [ECX][2*2]
-        .IF     (EBX == 0)                      ; zero div checking
-        MOV     WORD PTR [ECX][4*2], 0
-        INC     EBX
-        .CONTINUE
-        .ENDIF
-        ; CMP     EBX, 0
-        ; JE      ZDIV1
-        DIV     BX
-        SUB     AX, 100
-        MOV     WORD PTR [ECX][4*2], AX
-        ; calculate avg p-r, store to AX
-        SUB     CX, GBOFF
-        ADD     CX, GAOFF
-        ADD     AX, WORD PTR [ECX][4*2]
-        SAR     AX, 1
-        ; finished calculation
-        MOV     WORD PTR [ECX][4*2], AX
-        POP     EBX                             ; restore loop count
-        INC     EBX
-        ; .ENDW
-        .UNTIL  (EBX == N)
-        RET
-CALC_PROFIT     ENDP
+; CALC_PROFIT     PROC FAR STDCALL USES EAX EBX ECX EDX GAOFF:WORD, GBOFF:WORD, NSIZE:WORD, SSIZE:WORD
+;         MOV     EBX, 0
+;         ; .WHILE  (EBX != N)
+;         .REPEAT
+;         PUSH    EBX                             ; save loop count
+;         MOV     ECX, EBX
+;         IMUL    ECX, SSIZE
+;         ; LEA     ECX, GAOFF[10]
+;         ADD     CX, GAOFF
+;         ADD     CX, NSIZE
+;         MOVZX   EAX, WORD PTR [ECX][1*2]
+;         IMUL    EAX, 100
+;         IMUL    WORD PTR [ECX][3*2]
+;         MOVZX   EBX, WORD PTR [ECX][0*2]
+;         IMUL    EBX, WORD PTR [ECX][2*2]
+;         .IF     (EBX == 0)                      ; zero div checking
+;         MOV     WORD PTR [ECX][4*2], 0
+;         INC     EBX
+;         .CONTINUE
+;         .ENDIF
+;         ; CMP     EBX, 0
+;         ; JE      ZDIV1
+;         DIV     BX
+;         SUB     AX, 100
+;         MOV     WORD PTR [ECX][4*2], AX
+;         SUB     CX, GAOFF
+;         ADD     CX, GBOFF
+;         MOVZX   EAX, WORD PTR [ECX][1*2]
+;         IMUL    EAX, 100
+;         IMUL    WORD PTR [ECX][3*2]
+;         MOVZX   EBX, WORD PTR [ECX][0*2]
+;         IMUL    EBX, WORD PTR [ECX][2*2]
+;         .IF     (EBX == 0)                      ; zero div checking
+;         MOV     WORD PTR [ECX][4*2], 0
+;         INC     EBX
+;         .CONTINUE
+;         .ENDIF
+;         ; CMP     EBX, 0
+;         ; JE      ZDIV1
+;         DIV     BX
+;         SUB     AX, 100
+;         MOV     WORD PTR [ECX][4*2], AX
+;         ; calculate avg p-r, store to AX
+;         SUB     CX, GBOFF
+;         ADD     CX, GAOFF
+;         ADD     AX, WORD PTR [ECX][4*2]
+;         SAR     AX, 1
+;         ; finished calculation
+;         MOV     WORD PTR [ECX][4*2], AX
+;         POP     EBX                             ; restore loop count
+;         INC     EBX
+;         ; .ENDW
+;         .UNTIL  (EBX == N)
+;         RET
+; CALC_PROFIT     ENDP
 
 
 START:
